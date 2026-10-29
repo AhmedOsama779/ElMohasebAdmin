@@ -1,0 +1,32 @@
+<main class="login">
+  <form class="login__card" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <h1 class="login__brand">المحاسب</h1>
+    <p class="login__title">تسجيل دخول الإدارة</p>
+
+    <div class="field">
+      <label class="field__label" for="email">البريد الإلكتروني</label>
+      <input id="email" type="email" dir="ltr" class="field__input" formControlName="email"
+             [class.invalid]="form.controls.email.invalid && form.controls.email.touched" />
+      @if (form.controls.email.touched && form.controls.email.invalid) {
+        <span class="field__error">أدخل بريدًا إلكترونيًا صحيحًا</span>
+      }
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="password">كلمة المرور</label>
+      <input id="password" type="password" dir="ltr" class="field__input" formControlName="password"
+             [class.invalid]="form.controls.password.invalid && form.controls.password.touched" />
+      @if (form.controls.password.touched && form.controls.password.invalid) {
+        <span class="field__error">كلمة المرور مطلوبة</span>
+      }
+    </div>
+
+    @if (error(); as err) {
+      <p class="alert alert--error" role="alert">{{ err }}</p>
+    }
+
+    <button type="submit" class="btn btn--primary" [disabled]="loading()">
+      {{ loading() ? 'جارٍ الدخول...' : 'دخول' }}
+    </button>
+  </form>
+</main>

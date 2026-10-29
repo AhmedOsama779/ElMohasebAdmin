@@ -1,0 +1,130 @@
+<header class="head">
+  <div>
+    <h1 class="head__title">إدارة الطلبات</h1>
+    <p class="head__sub">التحكم المباشر في جميع الطلبات على مستوى النظام</p>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" [class.active]="filter() === 'all'" [attr.aria-selected]="filter() === 'all'" (click)="setFilter('all')">الكل</button>
+    <button type="button" role="tab" [class.active]="filter() === 'white'" [attr.aria-selected]="filter() === 'white'" (click)="setFilter('white')">القائمة البيضاء</button>
+    <button type="button" role="tab" [class.active]="filter() === 'black'" [attr.aria-selected]="filter() === 'black'" (click)="setFilter('black')">القائمة السوداء</button>
+  </div>
+</header>
+
+<section class="card">
+  <div class="card__head">
+    <div class="card__title">
+      <h2>قائمة المعاملات المتاحة</h2>
+      @if (data(); as d) {
+        <span class="count">{{ d.totalCount }} طلبات</span>
+      }
+    </div>
+    <small>انقر على أي صف للاطلاع على بيانات الطلب ومستنداته</small>
+  </div>
+
+  @if (error(); as err) {
+    <p class="alert alert--error state" role="alert">{{ err }}</p>
+  } @else if (loading()) {
+    <p class="state">جارٍ تحميل الطلبات...</p>
+  } @else if (!items().length) {
+    <p class="state">لا توجد طلبات في هذه القائمة.</p>
+  } @else {
+    <div class="table-scroll">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>الحالة</th>
+            <th>رقم الطلب</th>
+            <th>الخدمة</th>
+            <th>اسم العميل</th>
+            <th>التفاصيل</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (o of items(); track o.id) {
+            <tr [class.unread]="!o.isRead" tabindex="0" (click)="open(o)" (keydown.enter)="open(o)">
+              <td>
+                @if (o.isSpam) {
+                    <span class="blocked">
+                    محظور / قائمة سوداء
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M5.6 5.6l12.8 12.8" />
+                    </svg>
+                    </span>
+                } @else {
+                    <span class="state-pill" [class.state-pill--new]="!o.isRead">
+                    @if (!o.isRead) { <i class="dot"></i> }
+                    {{ o.isRead ? 'تمت القراءة' : 'جديد' }}
+                    </span>
+                }
+              </td>
+              <td><code dir="ltr">#{{ o.code }}</code></td>
+              <td>{{ o.service }}</td>
+              <td>
+                <span class="client">
+                  <span class="avatar">{{ initial(o.name) }}</span>
+                  {{ o.name }}
+                </span>
+              </td>
+              <td><span class="arrow" aria-hidden="true">←</span></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card__foot">
+      <span>يتم فرز المعاملات النظامية المعتمدة فقط تلقائيًا</span>
+
+      <nav class="pager" aria-label="التنقل بين الصفحات">
+        @for (p of pages(); track p) {
+          <button type="button" [class.active]="p === pageNumber()" (click)="goTo(p)">{{ p }}</button>
+        }
+      </nav>
+    </div>
+  }
+</section>
+
+@if (selected(); as s) {
+  <div class="overlay" (click)="close()"></div>
+
+  <aside class="drawer" role="dialog" aria-modal="true" aria-label="تفاصيل الطلب">
+    <header class="drawer__head">
+      <div>
+        <strong dir="ltr">#{{ s.code }}</strong>
+        <small>{{ formatDate(s.createdAt) }}</small>
+      </div>
+      <button type="button" class="drawer__close" (click)="close()" aria-label="إغلاق">✕</button>
+    </header>
+
+    @if (s.isSpam) {
+      <p class="flag">هذا الطلب في القائمة السوداء</p>
+    }
+
+    <dl class="info">
+      <div><dt>الخدمة</dt><dd>{{ s.service }}</dd></div>
+      <div><dt>اسم العميل</dt><dd>{{ s.name }}</dd></div>
+      <div><dt>البريد الإلكتروني</dt><dd dir="ltr"><a [href]="'mailto:' + s.email">{{ s.email }}</a></dd></div>
+      <div><dt>رقم الهاتف</dt><dd dir="ltr"><a [href]="'tel:' + s.phone">{{ s.phone }}</a></dd></div>
+    </dl>
+
+    <dl class="amounts">
+      <div><dt>إجمالي الخدمة</dt><dd>{{ s.price | number: '1.0-2' }} ج.م</dd></div>
+      <div><dt>العربون</dt><dd>{{ s.deposit | number: '1.0-2' }} ج.م</dd></div>
+      <div><dt>المتبقي</dt><dd>{{ s.remind | number: '1.0-2' }} ج.م</dd></div>
+    </dl>
+
+    <h3 class="drawer__section">إيصال سداد العربون</h3>
+    @if (s.receiptUrl) {
+      <a [href]="toProxyUrl(s.receiptUrl)" target="_blank" rel="noopener noreferrer" class="receipt">
+        <img [src]="toProxyUrl(s.receiptUrl)" alt="إيصال سداد العربون" />
+      </a>
+    } @else {
+      <p class="muted">لا يوجد إيصال.</p>
+    }
+
+    <h3 class="drawer__section">المستندات المرفوعة</h3>
+    <p class="muted">عرض المستندات المرفوعة غير متاح حاليًا.</p>
+  </aside>
+}

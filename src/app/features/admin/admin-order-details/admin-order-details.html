@@ -1,0 +1,210 @@
+<main class="order">
+
+  <div class="viewbar">
+    <a routerLink="/admin/orders" class="back">
+      <span aria-hidden="true">→</span>
+      العودة إلى جدول الطلبات
+    </a>
+
+    <span class="viewbar__mode">
+      وضع الشاشة: <strong>عرض مستندي فقط (View-Only)</strong>
+    </span>
+
+    <span class="viewbar__lock">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="5" y="11" width="14" height="10" rx="2" />
+        <path d="M8 11V8a4 4 0 018 0v3" />
+      </svg>
+      لا يمكن تعديل البيانات أو إصدار قرارات من هذه النافذة
+    </span>
+  </div>
+
+  @if (loading()) {
+    <p class="state">جارٍ تحميل بيانات الطلب...</p>
+  } @else if (error(); as err) {
+    <p class="alert alert--error" role="alert">{{ err }}</p>
+    <a routerLink="/admin/orders" class="back back--solo">→ العودة إلى جدول الطلبات</a>
+  } @else if (request(); as r) {
+
+    <!-- ===== Order header ===== -->
+    <section class="card">
+      <div class="head">
+        <div>
+          <span class="label">المعاملة المعروضة</span>
+          <h1 class="code" dir="ltr">#{{ r.code }}</h1>
+        </div>
+
+        <span class="client-badge" [class.client-badge--blocked]="r.isSpam">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z" />
+            @if (!r.isSpam) {
+              <path d="M9 12l2 2 4-4" />
+            }
+          </svg>
+          {{ r.isSpam ? 'العميل في القائمة السوداء' : 'سجل العميل نشط ومعتمد' }}
+        </span>
+      </div>
+
+      <div class="pair">
+        <div class="box">
+          <span class="label">اسم الخدمة المطلوبة</span>
+          <strong>{{ r.service }}</strong>
+        </div>
+        <div class="box">
+          <span class="label">اسم العميل المسجل</span>
+          <strong>{{ r.name }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Payments ===== -->
+    <section class="card">
+      <header class="card__head">
+        <h2>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="6" width="20" height="12" rx="2" />
+            <circle cx="12" cy="12" r="2.5" />
+            <path d="M6 12h.01M18 12h.01" />
+          </svg>
+          تفاصيل الدفعات المالية
+        </h2>
+        <small>مرحلتا الدفعة الأولى (العربون) والمتبقي</small>
+      </header>
+
+      <div class="stages">
+
+        <article class="stage">
+          <header class="stage__head">
+            <h3>المرحلة الأولى: العربون المستلم</h3>
+            <span class="tag">دفعة أولية</span>
+          </header>
+
+          <div class="stage__meta">
+            <div>
+              <span class="label">المبلغ المحول</span>
+              <strong class="amount">{{ r.deposit | number: '1.2-2' }} <small>ج.م</small></strong>
+            </div>
+            <div>
+              <span class="label">الرقم المرجعي للعملية</span>
+              <strong class="ref" dir="ltr">{{ extras()?.depositReference ?? '—' }}</strong>
+            </div>
+          </div>
+
+          <span class="label">صورة إيصال التحويل</span>
+          @if (r.receiptUrl) {
+            <a class="receipt" [href]="toProxyUrl(r.receiptUrl)" target="_blank" rel="noopener noreferrer">
+              <img [src]="toProxyUrl(r.receiptUrl)" alt="إيصال سداد العربون" />
+            </a>
+          } @else {
+            <div class="placeholder">لا توجد صورة للإيصال</div>
+          }
+        </article>
+
+        <article class="stage">
+          <header class="stage__head">
+            <h3>المرحلة الثانية: المبلغ المتبقي</h3>
+            <span class="tag">دفعة تكميلية</span>
+          </header>
+
+          <div class="stage__meta">
+            <div>
+              <span class="label">المبلغ المحول</span>
+              <strong class="amount">{{ r.remind | number: '1.2-2' }} <small>ج.م</small></strong>
+            </div>
+            <div>
+              <span class="label">الرقم المرجعي للعملية</span>
+              <strong class="ref" dir="ltr">{{ extras()?.remainingReference ?? '—' }}</strong>
+            </div>
+          </div>
+
+          <span class="label">صورة إيصال التحويل</span>
+          @if (extras()?.remainingReceiptUrl; as url) {
+            <a class="receipt" [href]="toProxyUrl(url)" target="_blank" rel="noopener noreferrer">
+              <img [src]="toProxyUrl(url)" alt="إيصال سداد المتبقي" />
+            </a>
+          } @else {
+            <div class="placeholder">{{ remainingNote() }}</div>
+          }
+        </article>
+
+      </div>
+    </section>
+
+    <!-- ===== Uploaded documents ===== -->
+    <section class="card">
+      <header class="card__head">
+        <h2>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 8V6a2 2 0 012-2h4l2 2h8a2 2 0 012 2v1M3 8h19l-2 10a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+          </svg>
+          المستندات المرفوعة من العميل
+        </h2>
+        @if (extras()) {
+          <small>{{ filesLabel() }}</small>
+        }
+      </header>
+
+      @if (fileError(); as err) {
+        <p class="alert alert--error" role="alert">{{ err }}</p>
+      }
+
+      @if (extras(); as e) {
+        <div class="files">
+          @for (d of e.documents; track d.id) {
+            <article class="file">
+
+              <span class="file__icon" [class.file__icon--img]="d.kind === 'image'" aria-hidden="true">
+                @if (d.kind === 'pdf') {
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z" />
+                    <path d="M14 3v5h5M9 13h6M9 17h4" />
+                  </svg>
+                } @else {
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="16" rx="2" />
+                    <circle cx="9" cy="10" r="1.5" />
+                    <path d="M21 16l-5-5-8 8" />
+                  </svg>
+                }
+              </span>
+
+              <div class="file__info">
+                <strong class="file__name">{{ d.name }}</strong>
+                <span class="file__meta">
+                  <span>صيغة: {{ formatLabel(d) }}</span>
+                  <span>الحجم: {{ sizeLabel(d.sizeBytes) }}</span>
+                  @if (d.uploadedAt) {
+                    <span>مرفوع بتاريخ: {{ formatDate(d.uploadedAt) }}</span>
+                  }
+                </span>
+              </div>
+
+              <div class="file__actions">
+                <button type="button" class="btn-ghost" [disabled]="busyFile() !== null" (click)="preview(d)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                  معاينة
+                </button>
+
+                <button type="button" class="btn-solid" [disabled]="busyFile() !== null" (click)="download(d)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 4v11M7 11l5 5 5-5M4 20h16" />
+                  </svg>
+                  {{ busyFile() === d.id ? 'جارٍ التحميل...' : 'تحميل' }}
+                </button>
+              </div>
+
+            </article>
+          } @empty {
+            <p class="state">لم يرفع العميل أي مستندات.</p>
+          }
+        </div>
+      } @else {
+        <p class="state">عرض المستندات المرفوعة غير متاح حاليًا.</p>
+      }
+    </section>
+
+  }
+</main>

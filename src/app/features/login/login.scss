@@ -1,0 +1,28 @@
+.login {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 24px;
+
+  &__card {
+    width: min(400px, 100%);
+    padding: 32px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+  }
+
+  &__brand {
+    text-align: center;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+
+  &__title {
+    margin: 4px 0 28px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--color-muted);
+  }
+}

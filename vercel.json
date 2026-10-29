@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/backend/:path*",
+      "destination": "http://mohaseb-api.runasp.net/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

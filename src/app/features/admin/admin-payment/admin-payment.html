@@ -1,0 +1,135 @@
+<main class="settings">
+
+  <nav class="crumbs" aria-label="مسار التنقل">
+    <span>بوابة الإدارة</span>
+    <span aria-hidden="true">›</span>
+    <span>الإعدادات العامة</span>
+  </nav>
+
+  <h1 class="settings__title">إعدادات الدفع ومعلومات المكتب</h1>
+  <p class="settings__sub">إدارة بيانات التحويلات المالية البنكية وسجل معلومات المكتب والفروع الرسمية.</p>
+
+  <section class="panel">
+
+    <header class="panel__head">
+      <span class="panel__icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20 7H5a2 2 0 010-4h13v4" />
+          <path d="M20 7a1 1 0 011 1v10a2 2 0 01-2 2H5a2 2 0 01-2-2V5" />
+          <circle cx="16.5" cy="13" r="1" />
+        </svg>
+      </span>
+      <div class="panel__text">
+        <h2>بوابات التحويل (إنستاباي / InstaPay)</h2>
+        <p>البيانات المعتمدة التي تظهر للعملاء عند إتمام عمليات السداد المباشر.</p>
+      </div>
+      <span class="panel__badge">نظام التحويل الفوري</span>
+    </header>
+
+    @if (loading()) {
+      <p class="state">جارٍ تحميل بيانات الدفع...</p>
+    } @else if (loadError(); as err) {
+      <p class="alert alert--error" role="alert">{{ err }}</p>
+    } @else {
+
+      @if (isNew()) {
+        <p class="info">لم تتم إضافة بيانات الدفع بعد. املأ الحقول واحفظ لإضافتها.</p>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+
+        <div class="grid">
+
+          <div class="field-box">
+            <label class="label" for="ipan">عنوان أو رقم إنستاباي المحول إليه <em>*</em></label>
+            <span class="input">
+              <input
+                id="ipan"
+                dir="ltr"
+                formControlName="ipan"
+                placeholder="name@instapay"
+                autocomplete="off"
+                [class.invalid]="ipan.invalid && ipan.touched"
+              />
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M16 8v5a3 3 0 006 0v-1a10 10 0 10-3.9 7.9" />
+              </svg>
+            </span>
+            @if (ipan.touched && ipan.errors?.['required']) {
+              <span class="error">هذا الحقل مطلوب</span>
+            } @else if (ipan.touched && ipan.errors?.['instapay']) {
+              <span class="error">أدخل عنوان إنستاباي مثل name@instapay أو رقم هاتف مصري صحيح</span>
+            }
+            <small class="hint">يقبل معرف الدفع اللحظي (IPA) أو رقم الهاتف المرتبط بالمحفظة.</small>
+          </div>
+
+          <div class="field-box">
+            <label class="label" for="accountName">اسم المستلم المعتمد <em>*</em></label>
+            <span class="input">
+              <input
+                id="accountName"
+                dir="auto"
+                formControlName="accountName"
+                autocomplete="off"
+                [class.invalid]="accountName.invalid && accountName.touched"
+              />
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="7" width="18" height="13" rx="2" />
+                <path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18" />
+              </svg>
+            </span>
+            @if (accountName.touched && accountName.errors?.['required']) {
+              <span class="error">اسم المستلم مطلوب</span>
+            } @else if (accountName.touched && accountName.errors?.['maxlength']) {
+              <span class="error">الاسم طويل جدًا (100 حرف كحد أقصى)</span>
+            }
+            <small class="hint">يساعد العميل في التأكد من صحة المستلم قبل التحويل.</small>
+          </div>
+
+        </div>
+
+        <div class="field-box">
+          <label class="label" for="notes">ملاحظات إضافية وسياسة الاسترداد (اختياري)</label>
+          <textarea
+            id="notes"
+            dir="auto"
+            rows="4"
+            formControlName="notes"
+            [class.invalid]="notes.invalid && notes.touched"
+          ></textarea>
+          @if (notes.touched && notes.errors?.['maxlength']) {
+            <span class="error">الملاحظات طويلة جدًا (1000 حرف كحد أقصى)</span>
+          }
+          <small class="hint">تظهر هذه الملاحظات للعميل أسفل بيانات الدفع في شاشة تقديم الطلب.</small>
+        </div>
+
+        @if (saved()) {
+          <p class="alert alert--success" role="status">تم حفظ إعدادات الدفع بنجاح.</p>
+        }
+        @if (saveError(); as err) {
+          <p class="alert alert--error" role="alert">{{ err }}</p>
+        }
+
+        <div class="foot">
+          <p class="foot__note">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 11v5M12 8h.01" />
+            </svg>
+            التعديلات تنعكس فورًا على فواتير وسندات سداد العملاء الجدد.
+          </p>
+
+          <button type="submit" class="save" [disabled]="saving() || (form.pristine && !isNew())">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 3h11l4 4v13a1 1 0 01-1 1H5a1 1 0 01-1-1V4a1 1 0 011-1z" />
+              <path d="M8 3v5h7V3M8 21v-7h8v7" />
+            </svg>
+            {{ saving() ? 'جارٍ الحفظ...' : 'حفظ إعدادات الدفع' }}
+          </button>
+        </div>
+
+      </form>
+    }
+  </section>
+</main>

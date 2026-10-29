@@ -1,0 +1,296 @@
+<main class="services">
+
+  <header class="head">
+    <div>
+      <nav class="crumbs" aria-label="مسار التنقل">
+        <span>بوابة الإدارة</span>
+        <span aria-hidden="true">›</span>
+        <span>الخدمات</span>
+      </nav>
+      <h1 class="head__title">إدارة الخدمات</h1>
+      <p class="head__sub">إدارة وتعديل خدمات المنصة، وتسعيرها، وتحديد المستندات المطلوبة لكل خدمة</p>
+    </div>
+
+    <button type="button" class="btn-save" (click)="openDialog()">إضافة خدمة جديدة +</button>
+  </header>
+
+  @if (notice(); as n) {
+    <p class="alert alert--{{ n.kind }} notice" role="status">
+      {{ n.text }}
+      <button type="button" class="notice__x" (click)="notice.set(null)" aria-label="إخفاء">✕</button>
+    </p>
+  }
+
+  <div class="toolbar">
+    <label class="filter">
+      <span>تصفية حسب التصنيف:</span>
+      <select (change)="onFilter($event)">
+        <option value="0">جميع التصنيفات</option>
+        @for (c of categories(); track c.id) {
+          <option [value]="c.id" [selected]="c.id === filterId()">{{ c.name }}</option>
+        }
+      </select>
+    </label>
+
+    <span class="total">
+      <i class="dot"></i>
+      إجمالي الخدمات المسجلة: <strong>{{ servicesLabel(total()) }}</strong>
+    </span>
+  </div>
+
+  @if (loading()) {
+    <p class="state">جارٍ تحميل الخدمات...</p>
+  } @else if (error(); as err) {
+    <p class="alert alert--error" role="alert">{{ err }}</p>
+  } @else if (!groups().length) {
+    <p class="state">لا توجد خدمات مسجلة. اضغط «إضافة خدمة جديدة» للبدء.</p>
+  } @else {
+    @for (c of groups(); track c.id) {
+      <section class="group">
+
+        <header class="group__head">
+          <h2>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 21V5a1 1 0 011-1h9a1 1 0 011 1v16M15 9h4a1 1 0 011 1v11M3 21h18M8 8h3M8 12h3M8 16h3" />
+            </svg>
+            تصنيف: {{ c.name }}
+          </h2>
+          <span class="group__count">{{ servicesLabel(c.services.length) }}</span>
+        </header>
+
+        <div class="table-scroll">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>صورة الخدمة</th>
+                <th>اسم الخدمة</th>
+                <th>التصنيف</th>
+                <th>السعر الإجمالي</th>
+                <th>العربون (إنستاباي)</th>
+                <th>المستندات المطلوبة</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (s of c.services; track s.id) {
+                <tr>
+                  <td><img class="thumb" [src]="toProxyUrl(s.url)" [alt]="s.name" loading="lazy" /></td>
+                  <td>
+                    <div class="name">
+                      <strong>{{ s.name }}</strong>
+                      <small>{{ s.description }}</small>
+                    </div>
+                  </td>
+                  <td><span class="badge">{{ c.name }}</span></td>
+                  <td class="num">{{ s.price | number: '1.0-2' }} ج.م</td>
+                  <td class="num num--accent">{{ s.deposit | number: '1.0-2' }} ج.م</td>
+                  <td>
+                    <span class="docs">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                      </svg>
+                      {{ docsLabel(s.documents.length) }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+      </section>
+    }
+  }
+</main>
+
+<!-- ================= Add service pop-up ================= -->
+<dialog #dialog class="modal" aria-labelledby="modal-title" (cancel)="onCancelEvent($event)" (click)="onDialogClick($event)">
+  <form class="modal__box" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+
+    <header class="modal__head">
+      <h2 id="modal-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+        </svg>
+        إضافة خدمة جديدة
+      </h2>
+      <button type="button" class="modal__x" (click)="requestClose()" aria-label="إغلاق">✕</button>
+    </header>
+
+    <div class="modal__body">
+
+      <div class="cols-2">
+        <div class="field-box">
+          <label class="label" for="svc-category">التصنيف الرئيسي <em>*</em></label>
+          <select id="svc-category" formControlName="categoryId" [class.invalid]="bad(form, 'categoryId')">
+            <option [ngValue]="0" disabled>اختر التصنيف المناسب</option>
+            @for (c of categories(); track c.id) {
+              <option [ngValue]="c.id">{{ c.name }}</option>
+            }
+          </select>
+          @if (bad(form, 'categoryId')) {
+            <span class="error">اختر التصنيف</span>
+          }
+          @if (!categories().length) {
+            <small class="hint">لا توجد تصنيفات بعد. أضف تصنيفًا أولًا.</small>
+          }
+        </div>
+
+        <div class="field-box">
+          <label class="label" for="svc-name">اسم الخدمة <em>*</em></label>
+          <input id="svc-name" dir="auto" formControlName="name" placeholder="مثال: تأسيس شركة الشخص الواحد" [class.invalid]="bad(form, 'name')" />
+          @if (bad(form, 'name')) {
+            <span class="error">اسم الخدمة مطلوب</span>
+          }
+        </div>
+      </div>
+
+      <div class="field-box">
+        <span class="label">صورة الخدمة (اختياري)</span>
+
+        <div class="image">
+          <span class="image__preview">
+            @if (preview(); as src) {
+              <img [src]="src" alt="معاينة صورة الخدمة" />
+            } @else {
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="16" rx="2" />
+                <circle cx="9" cy="10" r="1.5" />
+                <path d="M21 16l-5-5-8 8" />
+              </svg>
+            }
+          </span>
+
+          <div class="image__side">
+            <div class="image__actions">
+              <label class="pick">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z" />
+                  <path d="M14 3v5h5" />
+                </svg>
+                {{ image() ? 'تغيير الصورة' : 'رفع صورة' }}
+                <input class="pick__input" type="file" accept=".jpg,.jpeg,.png" (change)="onImage($event)" />
+              </label>
+              @if (image()) {
+                <button type="button" class="link-danger" (click)="removeImage()">إزالة</button>
+              }
+              <small class="hint">JPG أو PNG بحد أقصى 5 ميجابايت</small>
+            </div>
+
+            <div class="image__url">
+              <span class="hint">أو أدخل رابط الصورة المباشر:</span>
+              <input dir="ltr" disabled placeholder="https://example.com/image.jpg" />
+              <small class="tag">غير متاح حاليًا</small>
+            </div>
+          </div>
+        </div>
+
+        @if (imageError(); as err) {
+          <span class="error">{{ err }}</span>
+        }
+      </div>
+
+      <div class="cols-2">
+        <div class="field-box">
+          <label class="label" for="svc-price">السعر الإجمالي (ج.م) <em>*</em></label>
+          <span class="money">
+            <input id="svc-price" type="number" min="1" step="any" formControlName="price" placeholder="5000" [class.invalid]="bad(form, 'price')" />
+            <i>ج.م</i>
+          </span>
+          @if (bad(form, 'price')) {
+            <span class="error">أدخل السعر الإجمالي</span>
+          }
+        </div>
+
+        <div class="field-box">
+          <label class="label" for="svc-deposit">مبلغ العربون - إنستاباي (ج.م) <em>*</em></label>
+          <span class="money">
+            <input id="svc-deposit" type="number" min="1" step="any" formControlName="deposit" placeholder="1500" [class.invalid]="bad(form, 'deposit') || (form.errors?.['depositTooHigh'] && form.controls.deposit.touched)" />
+            <i>ج.م</i>
+          </span>
+          @if (bad(form, 'deposit')) {
+            <span class="error">أدخل مبلغ العربون</span>
+          } @else if (form.errors?.['depositTooHigh'] && form.controls.deposit.touched) {
+            <span class="error">العربون لا يمكن أن يتجاوز السعر الإجمالي</span>
+          }
+        </div>
+      </div>
+      <p class="hint hint--row">
+        هذا المبلغ هو الدفعة المقدمة المطلوبة لبدء إجراءات الطلب.
+        @if (remaining(); as rest) {
+          <strong>المتبقي بعد العربون: {{ rest | number: '1.0-2' }} ج.م</strong>
+        }
+      </p>
+
+      <div class="field-box">
+        <label class="label" for="svc-description">وصف الخدمة <em>*</em></label>
+        <textarea id="svc-description" dir="auto" rows="4" formControlName="description" placeholder="اكتب تفاصيل الخدمة ونطاق العمل المقدم للعميل بوضوح..." [class.invalid]="bad(form, 'description')"></textarea>
+        @if (bad(form, 'description')) {
+          <span class="error">وصف الخدمة مطلوب</span>
+        }
+      </div>
+
+      <section class="docs-box">
+        <div class="docs-box__head">
+          <div>
+            <h3>قائمة المستندات المطلوبة من العميل</h3>
+            <p>تحديد الأوراق اللازمة لبدء التنفيذ. الصيغ المقبولة JPG/PNG/PDF بحد أقصى 5 ميجابايت للملف.</p>
+          </div>
+          <button type="button" class="add" (click)="addDocument()">إضافة مستند جديد +</button>
+        </div>
+
+        <div class="docs-table" formArrayName="documents">
+          <div class="docs-row docs-row--head">
+            <span>اسم المستند المطلوب</span>
+            <span>نوع الإلزام</span>
+            <span>الصيغ المقبولة</span>
+            <span>الحد الأقصى</span>
+            <span>حذف</span>
+          </div>
+
+          @for (d of documents.controls; track d; let i = $index) {
+            <div class="docs-row" [formGroupName]="i">
+              <div class="field-box">
+                <input dir="auto" formControlName="name" placeholder="مثال: بطاقة الرقم القومي" [class.invalid]="bad(d, 'name')" aria-label="اسم المستند" />
+                @if (bad(d, 'name')) {
+                  <span class="error">اسم المستند مطلوب</span>
+                }
+              </div>
+
+              <select formControlName="isMandatory" aria-label="نوع الإلزام">
+                <option [ngValue]="true">إلزامي</option>
+                <option [ngValue]="false">اختياري</option>
+              </select>
+
+              <span class="fixed">JPG, PNG, PDF</span>
+              <span class="fixed">5 ميجابايت</span>
+
+              <button type="button" class="icon-del" (click)="removeDocument(i)" aria-label="حذف المستند">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+                </svg>
+              </button>
+            </div>
+          } @empty {
+            <p class="empty">لا توجد مستندات. يمكن إضافة خدمة بدون مستندات مطلوبة.</p>
+          }
+        </div>
+
+        @if (documents.errors?.['duplicate']) {
+          <p class="error">لا يمكن تكرار اسم المستند.</p>
+        }
+      </section>
+
+      @if (saveError(); as err) {
+        <p class="alert alert--error" role="alert">{{ err }}</p>
+      }
+    </div>
+
+    <footer class="modal__foot">
+      <button type="button" class="btn-plain" (click)="requestClose()" [disabled]="saving()">إلغاء</button>
+      <button type="submit" class="btn-save" [disabled]="saving()">
+        {{ saving() ? 'جارٍ الحفظ...' : 'حفظ التغييرات' }}
+      </button>
+    </footer>
+
+  </form>
+</dialog>

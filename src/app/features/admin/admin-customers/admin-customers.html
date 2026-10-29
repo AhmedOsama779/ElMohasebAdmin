@@ -1,0 +1,141 @@
+<header class="head">
+  <div>
+    <h1 class="head__title">إدارة العملاء</h1>
+    <p class="head__sub">التحكم المباشر في حالة تصنيف وحظر العملاء على مستوى النظام</p>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" [class.active]="filter() === 'all'" [attr.aria-selected]="filter() === 'all'" (click)="setFilter('all')">الكل</button>
+    <button type="button" role="tab" [class.active]="filter() === 'white'" [attr.aria-selected]="filter() === 'white'" (click)="setFilter('white')">القائمة البيضاء</button>
+    <button type="button" role="tab" [class.active]="filter() === 'black'" [attr.aria-selected]="filter() === 'black'" (click)="setFilter('black')">القائمة السوداء</button>
+  </div>
+</header>
+
+<section class="policy">
+  <span class="policy__icon">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5M12 8h.01" />
+    </svg>
+  </span>
+  <div>
+    <h2>سياسة عزل وتوجيه العمليات</h2>
+    <p>العملاء في القائمة السوداء يتم استبعاد طلباتهم تلقائيًا من قائمة الطلبات العامة ونقلها لقسم طلبات القائمة السوداء.</p>
+  </div>
+</section>
+
+<section class="card">
+  @if (error(); as err) {
+    <p class="alert alert--error state" role="alert">{{ err }}</p>
+  } @else if (loading()) {
+    <p class="state">جارٍ تحميل العملاء...</p>
+  } @else if (!items().length) {
+    <p class="state">لا يوجد عملاء في هذه القائمة.</p>
+  } @else {
+    <div class="table-scroll">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>اسم العميل</th>
+            <th>البريد الإلكتروني</th>
+            <th>رقم الهاتف</th>
+            <th>الدولة</th>
+            <th>المدينة</th>
+            <th>الدور والصلاحية</th>
+            <th>التصنيف والتحكم</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of items(); track c.id) {
+            @let av = avatar(c.fullName);
+            <tr>
+              <td>
+                <span class="client">
+                  <span class="avatar" [style.background]="av.bg" [style.color]="av.fg">{{ initial(c.fullName) }}</span>
+                  <strong>{{ c.fullName }}</strong>
+                </span>
+              </td>
+
+              <td><span class="mono" dir="ltr">{{ c.email }}</span></td>
+
+              <td>
+                <a class="phone" dir="ltr" [href]="whatsapp(c.phone)" target="_blank" rel="noopener noreferrer" title="مراسلة عبر واتساب">
+                  {{ c.phone }}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 12a8 8 0 01-11.7 7.1L4 20l1-4.6A8 8 0 1121 12z" />
+                  </svg>
+                </a>
+              </td>
+
+              <td>{{ c.country }}</td>
+              <td>{{ c.city }}</td>
+
+              <td>
+                <span class="role">
+                  <span class="role-badge" [class.role-badge--admin]="c.role === 'Admin'">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      @if (c.role === 'Admin') {
+                        <path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z" />
+                      } @else {
+                        <circle cx="12" cy="8" r="4" />
+                        <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+                      }
+                    </svg>
+                    {{ c.role === 'Admin' ? 'مدير' : 'مستخدم عادي' }}
+                  </span>
+                  <button type="button" class="icon-btn" (click)="ask('role', c)" [attr.aria-label]="'تغيير دور ' + c.fullName" title="تغيير الدور">⇄</button>
+                </span>
+              </td>
+
+              <td>
+                <span class="control">
+                  <span class="list-badge" [class.list-badge--black]="c.isBlacklisted">
+                    {{ c.isBlacklisted ? 'القائمة السوداء' : 'القائمة البيضاء' }}
+                  </span>
+
+                  @if (c.isBlacklisted) {
+                    <button type="button" class="act act--unblock" (click)="ask('unblock', c)">إلغاء الحظر</button>
+                  } @else {
+                    <button type="button" class="act act--block" (click)="ask('block', c)">حظر</button>
+                  }
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card__foot">
+      @if (data(); as d) {
+        <span>إجمالي {{ d.totalCount }} عميل</span>
+      }
+
+      <nav class="pager" aria-label="التنقل بين الصفحات">
+        @for (p of pages(); track p) {
+          <button type="button" [class.active]="p === pageNumber()" (click)="goTo(p)">{{ p }}</button>
+        }
+      </nav>
+    </div>
+  }
+</section>
+
+@if (confirmText(); as t) {
+  <div class="overlay" (click)="cancel()"></div>
+
+  <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="dialog-title">
+    <h2 id="dialog-title">{{ t.title }}</h2>
+    <p>{{ t.body }}</p>
+
+    @if (actionError(); as err) {
+      <p class="alert alert--error" role="alert">{{ err }}</p>
+    }
+
+    <div class="dialog__actions">
+      <button type="button" class="dialog__cancel" (click)="cancel()" [disabled]="working()">إلغاء</button>
+      <button type="button" class="dialog__ok" [class.dialog__ok--danger]="t.danger" [disabled]="working()" (click)="confirm()">
+        {{ working() ? 'جارٍ التنفيذ...' : t.button }}
+      </button>
+    </div>
+  </div>
+}

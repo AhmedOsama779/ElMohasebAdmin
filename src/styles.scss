@@ -1,1 +1,137 @@
-/* You can add global styles to this file, and also import other style files */
+:root {
+  --color-primary: #0e5a6f;
+  --color-bg: #f7f9fb;
+  --color-surface: #ffffff;
+  --color-border: #dcdfe3;
+  --color-text: #1a1a1a;
+  --color-muted: #6b7280;
+  --radius: 8px;
+  --font-main: 'Cairo', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-main);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+a { text-decoration: none; color: inherit; }
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__label {
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  &__link {
+    font-size: 12px;
+    color: var(--color-primary);
+  }
+
+  &__input {
+    height: 44px;
+    padding: 0 12px;
+    font-family: inherit;
+    font-size: 14px;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: var(--color-surface);
+    text-align: left;   // emails and passwords are typed left-to-right
+
+    &:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+
+    &.invalid {
+      border-color: #d92d20;
+    }
+  }
+
+  &__error {
+    font-size: 12px;
+    color: #d92d20;
+  }
+}
+
+.btn {
+  width: 100%;
+  height: 40px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+
+  &--primary {
+    background: var(--color-primary);
+    color: #fff;
+  }
+}
+.page-card {
+  width: calc(100% - 32px);
+  max-width: 400px;
+  margin: 48px auto 0;
+  padding: 32px;
+  background: var(--color-surface);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  text-align: center;
+
+  &__icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 24px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  &__eyebrow { font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+  &__title { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+  &__text { font-size: 13px; line-height: 1.8; margin-bottom: 24px; }
+
+  &__link {
+    display: block;
+    margin-top: 20px;
+    font-size: 13px;
+    &:hover { color: var(--color-primary); }
+  }
+}
+
+.page-secure {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.alert {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  text-align: start;
+
+  &--error { background: #fef3f2; color: #b42318; border: 1px solid #fecdca; }
+  &--success { background: #ecfdf3; color: #067647; border: 1px solid #abefc6; }
+}

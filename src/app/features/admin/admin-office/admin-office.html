@@ -1,0 +1,352 @@
+<form class="office" [formGroup]="form" (ngSubmit)="save()" novalidate>
+
+  <header class="top">
+    <div class="top__titles">
+      <nav class="crumbs" aria-label="مسار التنقل">
+        <span>بوابة الإدارة</span>
+        <span aria-hidden="true">›</span>
+        <span>معلومات المكتب</span>
+      </nav>
+      <h1>معلومات المكتب والتواصل</h1>
+    </div>
+
+    <div class="top__actions">
+      <button type="button" class="btn-outline" (click)="cancel()" [disabled]="form.pristine">إلغاء التغييرات</button>
+      <button type="submit" class="btn-save" [disabled]="saving() || (form.pristine && !!original())">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 3h11l4 4v13a1 1 0 01-1 1H5a1 1 0 01-1-1V4a1 1 0 011-1z" />
+          <path d="M8 3v5h7V3M8 21v-7h8v7" />
+        </svg>
+        {{ saving() ? 'جارٍ الحفظ...' : 'حفظ التعديلات' }}
+      </button>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <p class="state">جارٍ تحميل معلومات المكتب...</p>
+  } @else if (loadError(); as err) {
+    <p class="alert alert--error" role="alert">{{ err }}</p>
+  } @else {
+
+    @if (!original()) {
+      <p class="info">لم تتم إضافة معلومات المكتب بعد. املأ الحقول واحفظ لإضافتها.</p>
+    }
+
+    <!-- ===== Intro text ===== -->
+    <section class="card">
+      <header class="card__head">
+        <div class="card__title">
+          <span class="icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 11v5M12 8h.01" />
+            </svg>
+          </span>
+          <div>
+            <h2>النبذة التعريفية (عن المحاسب)</h2>
+            <p>تظهر في تذييل الموقع وصفحة التواصل الرئيسية</p>
+          </div>
+        </div>
+      </header>
+
+      <div class="field-box">
+        <label class="label" for="contactText">نص النبذة التعريفية <em>*</em></label>
+        <textarea id="contactText" dir="auto" rows="5" formControlName="contactText" [class.invalid]="bad(form, 'contactText')"></textarea>
+        @if (bad(form, 'contactText')) {
+          <span class="error">النبذة التعريفية مطلوبة</span>
+        }
+        <div class="hint-row">
+          <small class="hint">يفضل ألا يتجاوز النص 300 كلمة لضمان وضوح الواجهة للمستخدم.</small>
+          <small class="counter" [class.over]="introWords() > 300">{{ introWords() }} / 300 كلمة</small>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Offices ===== -->
+    <section class="card">
+      <header class="card__head">
+        <div class="card__title">
+          <span class="icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 21V5a1 1 0 011-1h9a1 1 0 011 1v16M15 9h4a1 1 0 011 1v11M3 21h18M8 8h3M8 12h3M8 16h3" />
+            </svg>
+          </span>
+          <div>
+            <h2>إدارة المكاتب والفروع</h2>
+            <p>إدارة عناوين المقرات والروابط المباشرة على خرائط جوجل</p>
+          </div>
+        </div>
+        <button type="button" class="add" (click)="addLocation()">إضافة مكتب جديد +</button>
+      </header>
+
+      <div class="items" formArrayName="locations">
+        @for (loc of locations.controls; track loc; let i = $index) {
+          <div class="item" [formGroupName]="i">
+            <div class="item__head">
+              <span class="item__tag">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 21s7-6.2 7-12a7 7 0 10-14 0c0 5.8 7 12 7 12z" />
+                  <circle cx="12" cy="9" r="2.5" />
+                </svg>
+                المكتب رقم {{ i + 1 }}
+              </span>
+              <button type="button" class="remove" (click)="removeLocation(i)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+                </svg>
+                حذف الفرع
+              </button>
+            </div>
+
+            <div class="cols-3">
+              <div class="field-box">
+                <label class="label">اسم المكتب / الفرع</label>
+                <input dir="auto" formControlName="locationName" [class.invalid]="bad(loc, 'locationName')" />
+                @if (bad(loc, 'locationName')) { <span class="error">اسم المكتب مطلوب</span> }
+              </div>
+
+              <div class="field-box">
+                <label class="label">العنوان التفصيلي</label>
+                <input dir="auto" formControlName="address" [class.invalid]="bad(loc, 'address')" />
+                @if (bad(loc, 'address')) { <span class="error">العنوان مطلوب</span> }
+              </div>
+
+              <div class="field-box">
+                <label class="label">رابط خرائط جوجل (Map Link)</label>
+                <span class="input">
+                  <input dir="ltr" formControlName="mapUrl" placeholder="https://maps.google.com/..." [class.invalid]="bad(loc, 'mapUrl')" />
+                  @if (loc.get('mapUrl')?.value && loc.get('mapUrl')?.valid) {
+                    <a class="open" [href]="loc.get('mapUrl')?.value" target="_blank" rel="noopener noreferrer" aria-label="فتح الرابط">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5" />
+                      </svg>
+                    </a>
+                  }
+                </span>
+                @if (bad(loc, 'mapUrl')) { <span class="error">أدخل رابطًا صحيحًا يبدأ بـ https://</span> }
+              </div>
+            </div>
+          </div>
+        } @empty {
+          <p class="empty">لا توجد مكاتب مضافة. اضغط «إضافة مكتب جديد».</p>
+        }
+      </div>
+
+      @if (locations.errors?.['duplicate']) {
+        <p class="error">لا يمكن تكرار اسم المكتب.</p>
+      }
+    </section>
+
+    <!-- ===== Phones ===== -->
+    <section class="card">
+      <header class="card__head">
+        <div class="card__title">
+          <span class="icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z" />
+            </svg>
+          </span>
+          <div>
+            <h2>أرقام الهاتف والتواصل</h2>
+            <p>قنوات الاتصال المباشرة مع التسميات الوظيفية لكل خط</p>
+          </div>
+        </div>
+        <button type="button" class="add" (click)="addPhone()">إضافة رقم جديد +</button>
+      </header>
+
+      <div class="items" formArrayName="phones">
+        @for (p of phones.controls; track p; let i = $index) {
+          <div class="item item--row" [formGroupName]="i">
+            <div class="cols-phone">
+              <div class="field-box">
+                <label class="label">رقم الهاتف / الخط الساخن</label>
+                <input dir="ltr" formControlName="phone" placeholder="+20 100 123 4567" [class.invalid]="bad(p, 'phone')" />
+                @if (bad(p, 'phone')) { <span class="error">أدخل رقم هاتف</span> }
+              </div>
+
+              <div class="field-box">
+                <label class="label">تسمية / وصف الرقم</label>
+                <input dir="auto" formControlName="name" [class.invalid]="bad(p, 'name')" />
+                @if (bad(p, 'name')) { <span class="error">التسمية مطلوبة</span> }
+              </div>
+
+              <button type="button" class="remove remove--row" (click)="removePhone(i)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+                </svg>
+                حذف
+              </button>
+            </div>
+          </div>
+        } @empty {
+          <p class="empty">لا توجد أرقام مضافة. اضغط «إضافة رقم جديد».</p>
+        }
+      </div>
+
+      @if (phones.errors?.['duplicate']) {
+        <p class="error">لا يمكن تكرار نفس رقم الهاتف.</p>
+      }
+    </section>
+
+    <!-- ===== Email + working hours ===== -->
+    <div class="pair">
+
+      <section class="card">
+        <header class="card__head">
+          <div class="card__title">
+            <span class="icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="M3 7l9 6 9-6" />
+              </svg>
+            </span>
+            <div>
+              <h2>البريد الإلكتروني الرسمي</h2>
+              <p>البريد المعتمد لاستقبال الاستفسارات والطلبات</p>
+            </div>
+          </div>
+        </header>
+
+        <div class="field-box">
+          <label class="label" for="email">البريد الإلكتروني المعتمد <em>*</em></label>
+          <span class="input">
+            <input id="email" type="email" dir="ltr" formControlName="email" placeholder="info@example.com" [class.invalid]="bad(form, 'email')" />
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M16 8v5a3 3 0 006 0v-1a10 10 0 10-3.9 7.9" />
+            </svg>
+          </span>
+          @if (bad(form, 'email')) {
+            <span class="error">أدخل بريدًا إلكترونيًا صحيحًا</span>
+          }
+          <small class="hint">تصل إليه رسائل نموذج «تواصل معنا» المباشرة من الموقع.</small>
+        </div>
+      </section>
+
+      <section class="card">
+        <header class="card__head">
+          <div class="card__title">
+            <span class="icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 2" />
+              </svg>
+            </span>
+            <div>
+              <h2>ساعات العمل الرسمية</h2>
+              <p>أوقات العمل المتاحة للجمهور والرد الهاتفي</p>
+            </div>
+          </div>
+        </header>
+
+        <div class="cols-2">
+          <div class="field-box">
+            <label class="label" for="workingDays">أيام العمل</label>
+            <input id="workingDays" dir="auto" formControlName="workingDays" />
+          </div>
+          <div class="field-box">
+            <label class="label" for="workingTimes">الفترة الزمنية</label>
+            <input id="workingTimes" dir="auto" formControlName="workingTimes" />
+          </div>
+        </div>
+
+        <div class="field-box field-box--spaced">
+          <label class="label" for="extraNotes">ملاحظة العطلات (اختياري)</label>
+          <input id="extraNotes" dir="auto" formControlName="extraNotes" />
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ===== Social links ===== -->
+    <section class="card">
+      <header class="card__head">
+        <div class="card__title">
+          <span class="icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="18" cy="5" r="2.5" />
+              <circle cx="6" cy="12" r="2.5" />
+              <circle cx="18" cy="19" r="2.5" />
+              <path d="M8.2 10.8l7.6-4.6M8.2 13.2l7.6 4.6" />
+            </svg>
+          </span>
+          <div>
+            <h2>روابط منصات التواصل الاجتماعي</h2>
+            <p>الروابط المباشرة لحسابات المكتب الرسمية</p>
+          </div>
+        </div>
+      </header>
+
+      <div class="cols-2 cols-2--gap">
+
+        <div class="field-box">
+          <span class="label-row">
+            <label class="label">منصة لينكد إن (LinkedIn)</label>
+            <small class="tag">غير متاح حاليًا</small>
+          </span>
+          <input dir="ltr" disabled placeholder="https://linkedin.com/company/..." />
+          <small class="hint">هذا الحقل غير مفعّل بعد في الخادم.</small>
+        </div>
+
+        <div class="field-box">
+          <span class="label-row">
+            <label class="label" for="xUrl">منصة إكس (X / Twitter)</label>
+            <small class="tag">رسمي</small>
+          </span>
+          <input id="xUrl" dir="ltr" formControlName="xUrl" placeholder="https://x.com/..." [class.invalid]="bad(form, 'xUrl')" />
+          @if (bad(form, 'xUrl')) { <span class="error">أدخل رابطًا صحيحًا يبدأ بـ https://</span> }
+        </div>
+
+        <div class="field-box">
+          <span class="label-row">
+            <label class="label" for="facebookUrl">صفحة فيسبوك (Facebook)</label>
+            <small class="tag">رسمي</small>
+          </span>
+          <input id="facebookUrl" dir="ltr" formControlName="facebookUrl" placeholder="https://facebook.com/..." [class.invalid]="bad(form, 'facebookUrl')" />
+          @if (bad(form, 'facebookUrl')) { <span class="error">أدخل رابطًا صحيحًا يبدأ بـ https://</span> }
+        </div>
+
+        <div class="field-box">
+          <span class="label-row">
+            <label class="label" for="whatsAppUrl">رابط واتساب المباشر (WhatsApp)</label>
+            <small class="tag">دردشة سريعة</small>
+          </span>
+          <input id="whatsAppUrl" dir="ltr" formControlName="whatsAppUrl" placeholder="https://wa.me/201001234567" [class.invalid]="bad(form, 'whatsAppUrl')" />
+          @if (bad(form, 'whatsAppUrl')) { <span class="error">أدخل رابطًا صحيحًا يبدأ بـ https://</span> }
+        </div>
+
+      </div>
+    </section>
+
+    @if (saved()) {
+      <p class="alert alert--success" role="status">تم حفظ معلومات المكتب بنجاح.</p>
+    }
+    @if (saveError(); as err) {
+      <p class="alert alert--error" role="alert">{{ err }}</p>
+    }
+
+    <footer class="bar">
+      <span class="bar__info">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M7 7h13l-4-4M17 17H4l4 4" />
+        </svg>
+        @if (updatedAt(); as when) {
+          آخر تحديث مسجل: {{ formatDateTime(when) }}
+        } @else {
+          لم يتم حفظ أي بيانات بعد
+        }
+      </span>
+
+      <div class="bar__actions">
+        <button type="button" class="btn-outline" (click)="cancel()" [disabled]="form.pristine">تراجع</button>
+        <button type="submit" class="btn-save" [disabled]="saving() || (form.pristine && !!original())">
+          {{ saving() ? 'جارٍ الحفظ...' : 'حفظ التعديلات' }}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 12l5 5 9-10" />
+          </svg>
+        </button>
+      </div>
+    </footer>
+
+  }
+</form>
