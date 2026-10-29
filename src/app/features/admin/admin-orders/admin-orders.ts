@@ -1,29 +1,23 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
+import { Router, RouterLink } from '@angular/router';
 import { AdminRequest, PagedResult } from '../../../core/models/api.models';
 import { Admin } from '../../../core/services/admin';
 import { arabicError } from '../../../shared/utils/errors';
-import { formatDate } from '../../../shared/utils/format';
-import { toProxyUrl } from '../../../shared/utils/url';
-import { Router, RouterLink } from '@angular/router';
-
 
 type Filter = 'all' | 'white' | 'black';
 
 @Component({
   selector: 'app-admin-orders',
-  imports: [DecimalPipe , RouterLink],
+  imports: [RouterLink],
   templateUrl: './admin-orders.html',
   styleUrl: './admin-orders.scss',
-  host: { '(document:keydown.escape)': 'close()' },
 })
 export class AdminOrders {
   private admin = inject(Admin);
+  private router = inject(Router);
   private latestRequest = 0;
 
   readonly pageSize = 10;
-  formatDate = formatDate;
-  toProxyUrl = toProxyUrl;
 
   filter = signal<Filter>('all');
   pageNumber = signal(1);
@@ -33,7 +27,6 @@ export class AdminOrders {
   error = signal<string | null>(null);
 
   items = computed(() => this.data()?.items ?? []);
-  selected = signal<AdminRequest | null>(null);
 
   // Up to 5 page numbers around the current page
   pages = computed(() => {
@@ -66,30 +59,9 @@ export class AdminOrders {
     return name.trim().charAt(0);
   }
 
-  // Opening an order counts as reading it
+  // Opens the full order page (not a side panel)
   open(order: AdminRequest) {
-    this.selected.set(order);
-    if (!order.isRead) this.markRead(order);
-  }
-
-  close() {
-    this.selected.set(null);
-  }
-
-  private markRead(order: AdminRequest) {
-    this.admin.markRead(order.id, order.code).subscribe({
-      next: () => this.setRead(order.id),
-      error: err => {
-        if (err.status === 400) this.setRead(order.id); // already read
-      },
-    });
-  }
-
-  private setRead(id: number) {
-    this.data.update(d =>
-      d ? { ...d, items: d.items.map(o => (o.id === id ? { ...o, isRead: true } : o)) } : d
-    );
-    this.selected.update(s => (s && s.id === id ? { ...s, isRead: true } : s));
+    this.router.navigate(['/admin/orders', order.id]);
   }
 
   private load() {

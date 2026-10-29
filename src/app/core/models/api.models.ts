@@ -186,11 +186,11 @@ export interface ApiCustomer {
 
 export interface RequestDocumentFile {
   id: number;
-  name: string;               // the file name, like "السجل التجاري المعتمد.pdf"
+  name: string;
   url: string | null;
   kind: 'image' | 'pdf';
   sizeBytes: number | null;
-  uploadedAt: string | null;  // ISO date
+  uploadedAt: string | null; // ISO date
 }
 
 // Order details the admin list doesn't carry yet

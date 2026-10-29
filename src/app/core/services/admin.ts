@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { EMPTY, Observable, defaultIfEmpty, delay, expand, filter, map, of, take } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { toProxyUrl } from '../../shared/utils/url';
 import {
   AdminRequest,
   ApiResponse,
@@ -11,7 +12,6 @@ import {
   PaymentInfo,
   RequestExtras,
 } from '../models/api.models';
-import { toProxyUrl } from '../../shared/utils/url';
 
 // Parts the server can't do yet run on sample data in development builds only.
 // Production builds always call the real API.
@@ -56,10 +56,10 @@ export class Admin {
   }
 
   // The file is fetched through HttpClient so the login token is attached,
-// which a plain link or <img> tag could not do
-fetchFile(url: string): Observable<Blob> {
-  return this.http.get(toProxyUrl(url), { responseType: 'blob' });
-}
+  // which a plain link or <img> tag could not do
+  fetchFile(url: string): Observable<Blob> {
+    return this.http.get(toProxyUrl(url), { responseType: 'blob' });
+  }
 
   // Sample data in development, nothing in production
   getRequestExtras(id: number): Observable<RequestExtras | null> {
@@ -71,10 +71,10 @@ fetchFile(url: string): Observable<Blob> {
       remainingReference: id % 2 === 0 ? 'REF-99482103' : null,
       remainingReceiptUrl: null,
       documents: [
-  { id: 1, name: 'السجل التجاري المعتمد.pdf', url: null, kind: 'pdf', sizeBytes: Math.round(2.4 * 1024 * 1024), uploadedAt: '2024-10-24T09:30:00Z' },
-  { id: 2, name: 'ميزان المراجعة والقوائم المالية غير المدققة 2023.pdf', url: null, kind: 'pdf', sizeBytes: Math.round(5.8 * 1024 * 1024), uploadedAt: '2024-10-24T09:42:00Z' },
-  { id: 3, name: 'شهادة الزكاة وضريبة الدخل للعام السابق.png', url: null, kind: 'image', sizeBytes: Math.round(1.1 * 1024 * 1024), uploadedAt: '2024-10-25T11:05:00Z' },
-  { id: 4, name: 'عقد التأسيس وملاحق التعديل.pdf', url: null, kind: 'pdf', sizeBytes: Math.round(4.2 * 1024 * 1024), uploadedAt: '2024-10-25T11:20:00Z' },
+        { id: 1, name: 'السجل التجاري المعتمد.pdf', url: null, kind: 'pdf', sizeBytes: Math.round(2.4 * 1024 * 1024), uploadedAt: '2024-10-24T09:30:00Z' },
+        { id: 2, name: 'ميزان المراجعة والقوائم المالية غير المدققة 2023.pdf', url: null, kind: 'pdf', sizeBytes: Math.round(5.8 * 1024 * 1024), uploadedAt: '2024-10-24T09:42:00Z' },
+        { id: 3, name: 'شهادة الزكاة وضريبة الدخل للعام السابق.png', url: null, kind: 'image', sizeBytes: Math.round(1.1 * 1024 * 1024), uploadedAt: '2024-10-25T11:05:00Z' },
+        { id: 4, name: 'عقد التأسيس وملاحق التعديل.pdf', url: null, kind: 'pdf', sizeBytes: Math.round(4.2 * 1024 * 1024), uploadedAt: '2024-10-25T11:20:00Z' },
       ],
     }).pipe(delay(300));
   }
