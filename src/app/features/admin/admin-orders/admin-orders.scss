@@ -242,6 +242,11 @@ tr.unread .client { font-weight: 700; }
   color: #b42318;
   font-size: 12px;
 }
+.code-link {
+  color: inherit;
+
+  &:hover { text-decoration: underline; }
+}
 
 .info,
 .amounts {

@@ -144,11 +144,13 @@ export class AdminServices {
     this.closeDialog();
   }
 
-  // The Esc key: ask first instead of closing straight away
-  onCancelEvent(event: Event) {
-    event.preventDefault();
-    this.requestClose();
-  }
+ // The file chooser's own "cancel" event bubbles up to the dialog.
+// Only react to the dialog's own cancel (the Esc key)
+onCancelEvent(event: Event) {
+  if (event.target !== this.dialog()?.nativeElement) return;
+  event.preventDefault();
+  this.requestClose();
+}
 
   // A click on the dimmed area around the panel lands on the <dialog> element itself
   onDialogClick(event: MouseEvent) {

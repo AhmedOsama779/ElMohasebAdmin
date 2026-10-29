@@ -59,7 +59,11 @@
                     </span>
                 }
               </td>
-              <td><code dir="ltr">#{{ o.code }}</code></td>
+              <td>
+                <a class="code-link" dir="ltr" [routerLink]="['/admin/orders', o.id]" (click)="$event.stopPropagation()">
+                  <code>#{{ o.code }}</code>
+                </a>
+              </td>      
               <td>{{ o.service }}</td>
               <td>
                 <span class="client">

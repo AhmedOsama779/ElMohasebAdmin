@@ -5,12 +5,14 @@ import { Admin } from '../../../core/services/admin';
 import { arabicError } from '../../../shared/utils/errors';
 import { formatDate } from '../../../shared/utils/format';
 import { toProxyUrl } from '../../../shared/utils/url';
+import { Router, RouterLink } from '@angular/router';
+
 
 type Filter = 'all' | 'white' | 'black';
 
 @Component({
   selector: 'app-admin-orders',
-  imports: [DecimalPipe],
+  imports: [DecimalPipe , RouterLink],
   templateUrl: './admin-orders.html',
   styleUrl: './admin-orders.scss',
   host: { '(document:keydown.escape)': 'close()' },
