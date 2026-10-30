@@ -1,25 +1,10 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { EMPTY, Observable, defaultIfEmpty, delay, expand, filter, map, of, take } from 'rxjs';
+import { EMPTY, Observable, defaultIfEmpty, expand, filter, map, take } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { toProxyUrl } from '../../shared/utils/url';
-import {
-  AdminRequest,
-  ApiResponse,
-  CategoryItem,
-  ContactInput,
-  PagedResult,
-  PaymentInfo,
-  RequestExtras,
-} from '../models/api.models';
-
-// Parts the server can't do yet run on sample data in development builds only.
-// Production builds always call the real API.
-const MOCK_ENABLED = true; // TODO: set to false once the server supports them
-const USE_MOCK = MOCK_ENABLED && !environment.production;
-
-// In memory only, lost on refresh
-const mockActive = new Map<number, boolean>();
+import { ACTION_METHOD } from '../config/action-methods';
+import { AdminRequest, ApiResponse, CategoryItem, ContactInput, PagedResult, PaymentInfo } from '../models/api.models';
 
 @Injectable({ providedIn: 'root' })
 export class Admin {
@@ -61,24 +46,6 @@ export class Admin {
     return this.http.get(toProxyUrl(url), { responseType: 'blob' });
   }
 
-  // Sample data in development, nothing in production
-  getRequestExtras(id: number): Observable<RequestExtras | null> {
-    if (!USE_MOCK) return of(null);
-
-    return of<RequestExtras>({
-      isPaidComplete: id % 2 === 0,
-      depositReference: 'REF-77281920',
-      remainingReference: id % 2 === 0 ? 'REF-99482103' : null,
-      remainingReceiptUrl: null,
-      documents: [
-        { id: 1, name: 'السجل التجاري المعتمد.pdf', url: null, kind: 'pdf', sizeBytes: Math.round(2.4 * 1024 * 1024), uploadedAt: '2024-10-24T09:30:00Z' },
-        { id: 2, name: 'ميزان المراجعة والقوائم المالية غير المدققة 2023.pdf', url: null, kind: 'pdf', sizeBytes: Math.round(5.8 * 1024 * 1024), uploadedAt: '2024-10-24T09:42:00Z' },
-        { id: 3, name: 'شهادة الزكاة وضريبة الدخل للعام السابق.png', url: null, kind: 'image', sizeBytes: Math.round(1.1 * 1024 * 1024), uploadedAt: '2024-10-25T11:05:00Z' },
-        { id: 4, name: 'عقد التأسيس وملاحق التعديل.pdf', url: null, kind: 'pdf', sizeBytes: Math.round(4.2 * 1024 * 1024), uploadedAt: '2024-10-25T11:20:00Z' },
-      ],
-    }).pipe(delay(300));
-  }
-
   // ---------- settings ----------
 
   savePayment(body: PaymentInfo) {
@@ -87,6 +54,21 @@ export class Admin {
 
   saveContact(body: ContactInput) {
     return this.http.put<ApiResponse<unknown>>(`${this.base}/ContactUs/ContactUs`, body);
+  }
+
+  deleteLocation(id: number) {
+    return this.http.request<ApiResponse<unknown>>(
+      ACTION_METHOD.deleteLocation,
+      `${this.base}/ContactUs/Location/${id}`
+    );
+  }
+
+  // TODO: the path is a guess, confirm it in Swagger
+  deletePhone(id: number) {
+    return this.http.request<ApiResponse<unknown>>(
+      ACTION_METHOD.deletePhone,
+      `${this.base}/ContactUs/Phone/${id}`
+    );
   }
 
   // ---------- catalogue ----------
@@ -110,6 +92,13 @@ export class Admin {
     return this.http.post<ApiResponse<unknown>>(`${this.base}/Service/Service`, body);
   }
 
+  deleteService(id: number) {
+    return this.http.request<ApiResponse<unknown>>(
+      ACTION_METHOD.deleteService,
+      `${this.base}/Service/Service/${id}`
+    );
+  }
+
   addDocument(serviceId: number, name: string, isMandatory: boolean) {
     return this.http.post<ApiResponse<unknown>>(`${this.base}/Document/Documents`, {
       serviceId,
@@ -127,16 +116,16 @@ export class Admin {
     return this.http.post<ApiResponse<unknown>>(`${this.base}/Category/Category`, body);
   }
 
-  // A missing status means "active"
+  // A missing value means "valid"
   isCategoryActive(category: CategoryItem): boolean {
-    return category.isActive ?? mockActive.get(category.id) ?? true;
+    return category.isValid ?? true;
   }
 
-  setCategoryActive(id: number, isActive: boolean): Observable<unknown> {
-    if (USE_MOCK) {
-      mockActive.set(id, isActive);
-      return of(null).pipe(delay(250));
-    }
-    return this.http.patch<ApiResponse<unknown>>(`${this.base}/Category/Status`, { id, isActive });
+  // Switches the category between valid and not valid (the server flips the current value)
+  toggleCategory(id: number) {
+    return this.http.request<ApiResponse<unknown>>(
+      ACTION_METHOD.categoryStatus,
+      `${this.base}/Category/Status/${id}`
+    );
   }
 }

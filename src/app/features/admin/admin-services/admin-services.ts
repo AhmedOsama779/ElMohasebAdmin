@@ -11,11 +11,12 @@ import {
   Validators,
 } from '@angular/forms';
 import { catchError, forkJoin, map, of } from 'rxjs';
-import { CategoryItem } from '../../../core/models/api.models';
+import { CategoryItem , ServiceItem } from '../../../core/models/api.models';
 import { Admin } from '../../../core/services/admin';
 import { Category } from '../../../core/services/category';
 import { arabicError } from '../../../shared/utils/errors';
 import { toProxyUrl } from '../../../shared/utils/url';
+
 
 const IMAGE_TYPES = ['image/jpeg', 'image/png'];
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -48,12 +49,14 @@ export class AdminServices {
 
   toProxyUrl = toProxyUrl;
   dialog = viewChild<ElementRef<HTMLDialogElement>>('dialog');
+  deletingId = signal<number | null>(null);
+
 
   // ---------- the list ----------
   categories = signal<CategoryItem[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
-  notice = signal<{ kind: 'success' | 'warning'; text: string } | null>(null);
+  notice = signal<{ kind: 'success' | 'warning' | 'error'; text: string } | null>(null);
 
   filterId = signal(0); // 0 = all categories
   total = computed(() => this.categories().reduce((n, c) => n + c.services.length, 0));
@@ -310,4 +313,30 @@ onCancelEvent(event: Event) {
     this.image.set(file);
     this.preview.set(file ? URL.createObjectURL(file) : null);
   }
+  deleteService(service: ServiceItem) {
+  if (this.deletingId() !== null) return;
+  if (!confirm(`سيتم حذف خدمة «${service.name}» نهائيًا. هل تريد المتابعة؟`)) return;
+
+  this.deletingId.set(service.id);
+  this.notice.set(null);
+
+  this.admin.deleteService(service.id).subscribe({
+    next: () => {
+      this.deletingId.set(null);
+      this.notice.set({ kind: 'success', text: 'تم حذف الخدمة.' });
+      this.load();
+    },
+    error: err => {
+      this.deletingId.set(null);
+      this.notice.set({
+        kind: 'error',
+        text: arabicError(err, {
+          400: 'تعذر حذف الخدمة، قد تكون مرتبطة بطلبات قائمة.',
+          403: 'ليس لديك صلاحية لحذف الخدمات.',
+          409: 'تعذر حذف الخدمة، فهي مرتبطة بطلبات قائمة.',
+        }),
+      });
+    },
+  });
+}
 }

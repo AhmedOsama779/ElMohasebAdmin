@@ -176,6 +176,7 @@
 .modal {
   width: min(780px, calc(100% - 32px));
   max-height: calc(100vh - 48px);
+  margin: auto;            /* the global "margin: 0" reset removed the dialog's centring */
   padding: 0;
   overflow: hidden;
   border: none;
@@ -453,3 +454,19 @@ textarea {
 }
 
 .empty { padding: 16px; font-size: 12px; color: var(--color-muted); }
+
+.del {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #b42318;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  &:hover:not(:disabled) { text-decoration: underline; }
+}

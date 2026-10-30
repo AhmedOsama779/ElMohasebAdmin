@@ -56,8 +56,9 @@ export interface ServiceItem {
 export interface CategoryItem {
   id: number;
   name: string;
+  isValid?: boolean; // false = the category is disabled
+  count?: number;
   url: string;
-  isActive?: boolean; // the list doesn't send it yet, a missing value means "active"
   services: ServiceItem[];
 }
 
@@ -114,11 +115,13 @@ export interface RequestDetails {
 }
 
 export interface ContactPhone {
+    id?: number;
   phone: string;
   name: string;
 }
 
 export interface ContactLocation {
+    id?: number;
   locationName: string;
   address: string;
   mapUrl: string | null;
@@ -142,22 +145,28 @@ export interface ContactInfo {
 // What the PUT endpoint accepts (everything except the fields the server fills in)
 export type ContactInput = Omit<ContactInfo, 'id' | 'updatedAt'>;
 
+export interface RequestDocument {
+  name: string;
+  url: string;
+}
+
 export interface AdminRequest {
   id: number;
   code: string;
   isRead: boolean;
-  receiptUrl: string;
+  receiptUrl: string | null;    // deposit receipt
+  remainingUrl: string | null;  // remaining-payment receipt (empty until it is paid)
   createdAt: string;
   service: string;
   price: number;
   deposit: number;
   remind: number;
-  name: string;
-  email: string;
   phone: string;
+  email: string;
+  name: string;
   isSpam: boolean;
+  documents: RequestDocument[];
 }
-
 export type CustomerRole = 'Admin' | 'Customer';
 
 export interface Customer {
@@ -184,20 +193,3 @@ export interface ApiCustomer {
   city: string;
 }
 
-export interface RequestDocumentFile {
-  id: number;
-  name: string;
-  url: string | null;
-  kind: 'image' | 'pdf';
-  sizeBytes: number | null;
-  uploadedAt: string | null; // ISO date
-}
-
-// Order details the admin list doesn't carry yet
-export interface RequestExtras {
-  isPaidComplete: boolean;
-  depositReference: string | null;
-  remainingReference: string | null;
-  remainingReceiptUrl: string | null;
-  documents: RequestDocumentFile[];
-}

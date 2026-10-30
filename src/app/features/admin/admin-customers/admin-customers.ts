@@ -119,10 +119,7 @@ export class AdminCustomers {
     this.working.set(true);
     this.actionError.set(null);
 
-    const request$ =
-      action.kind === 'role'
-        ? this.api.setRole(c.id, c.role === 'Admin' ? 'Customer' : 'Admin')
-        : this.api.setBlacklisted(c.id, action.kind === 'block');
+    const request$ = action.kind === 'role' ? this.api.toggleRole(c.id) : this.api.toggleBlock(c.id);
 
     request$.subscribe({
       next: () => {

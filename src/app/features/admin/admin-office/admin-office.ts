@@ -15,6 +15,8 @@ import { Admin } from '../../../core/services/admin';
 import { Catalog } from '../../../core/services/catalog';
 import { arabicError } from '../../../shared/utils/errors';
 import { formatDateTime } from '../../../shared/utils/format';
+import { Observable, catchError, forkJoin, of, switchMap, throwError } from 'rxjs';
+
 
 const URL_PATTERN = /^https?:\/\/\S+$/i;
 
@@ -35,6 +37,9 @@ function noDuplicates(key: string, normalize: (s: string) => string = s => s): V
 }
 
 const blankToNull = (value: string): string | null => value.trim() || null;
+// A delete that answers "not found" means the item is already gone, which is what we wanted
+const ignore404 = (source$: Observable<unknown>) =>
+  source$.pipe(catchError(err => (err.status === 404 ? of(null) : throwError(() => err))));
 
 @Component({
   selector: 'app-admin-office',
@@ -46,6 +51,9 @@ export class AdminOffice {
   private fb = inject(FormBuilder);
   private admin = inject(Admin);
   private catalog = inject(Catalog);
+  // Rows the admin removed that exist on the server: deleted when "save" is pressed
+private deletedPhoneIds: number[] = [];
+private deletedLocationIds: number[] = [];
 
   formatDateTime = formatDateTime;
 
@@ -99,10 +107,13 @@ export class AdminOffice {
     this.form.markAsDirty();
   }
 
-  removePhone(index: number) {
-    this.phones.removeAt(index);
-    this.form.markAsDirty();
-  }
+removePhone(index: number) {
+  const id = this.phones.at(index).get('id')?.value as number | null | undefined;
+  if (id != null) this.deletedPhoneIds.push(id);
+  this.phones.removeAt(index);
+  this.form.markAsDirty();
+}
+
 
   addLocation() {
     this.locations.push(this.newLocation());
@@ -110,9 +121,11 @@ export class AdminOffice {
   }
 
   removeLocation(index: number) {
-    this.locations.removeAt(index);
-    this.form.markAsDirty();
-  }
+  const id = this.locations.at(index).get('id')?.value as number | null | undefined;
+  if (id != null) this.deletedLocationIds.push(id);
+  this.locations.removeAt(index);
+  this.form.markAsDirty();
+}
 
   // "إلغاء التغييرات" / "تراجع": go back to what the server has
   cancel() {
@@ -151,21 +164,29 @@ export class AdminOffice {
     this.saved.set(false);
     this.saveError.set(null);
 
-    this.admin.saveContact(body).subscribe({
-      next: () => {
-        this.saving.set(false);
-        this.reload(true); // read it back so "last update" is the server's time
-      },
-      error: err => {
-        this.saveError.set(
-          arabicError(err, {
-            400: 'تعذر الحفظ، تأكد من عدم تكرار أرقام الهاتف أو أسماء المكاتب ومن صحة الروابط.',
-            403: 'ليس لديك صلاحية لتعديل معلومات المكتب.',
-          })
-        );
-        this.saving.set(false);
-      },
-    });
+   // First delete what the admin removed, then send the rest
+const deletions = [
+  ...this.deletedPhoneIds.map(id => ignore404(this.admin.deletePhone(id))),
+  ...this.deletedLocationIds.map(id => ignore404(this.admin.deleteLocation(id))),
+];
+
+(deletions.length ? forkJoin(deletions) : of([]))
+  .pipe(switchMap(() => this.admin.saveContact(body)))
+  .subscribe({
+    next: () => {
+      this.saving.set(false);
+      this.reload(true); // read it back so "last update" is the server's time
+    },
+    error: err => {
+      this.saveError.set(
+        arabicError(err, {
+          400: 'تعذر الحفظ، تأكد من عدم تكرار أرقام الهاتف أو أسماء المكاتب ومن صحة الروابط.',
+          403: 'ليس لديك صلاحية لتعديل معلومات المكتب.',
+        })
+      );
+      this.saving.set(false);
+    },
+  });
   }
 
   private reload(afterSave = false) {
@@ -192,6 +213,8 @@ export class AdminOffice {
   }
 
   private fill(info: ContactInfo | null) {
+    this.deletedPhoneIds = [];
+    this.deletedLocationIds = [];
     this.phones.clear();
     this.locations.clear();
     info?.phones?.forEach(p => this.phones.push(this.newPhone(p)));
@@ -211,18 +234,20 @@ export class AdminOffice {
     this.form.markAsUntouched();
   }
 
-  private newPhone(value?: ContactPhone): FormGroup {
-    return this.fb.nonNullable.group({
-      phone: [value?.phone ?? '', [Validators.required, Validators.maxLength(30)]],
-      name: [value?.name ?? '', [Validators.required, Validators.maxLength(100)]],
-    });
-  }
+ private newPhone(value?: ContactPhone): FormGroup {
+  return this.fb.nonNullable.group({
+    id: this.fb.control<number | null>(value?.id ?? null),
+    phone: [value?.phone ?? '', [Validators.required, Validators.maxLength(30)]],
+    name: [value?.name ?? '', [Validators.required, Validators.maxLength(100)]],
+  });
+}
 
-  private newLocation(value?: ContactLocation): FormGroup {
-    return this.fb.nonNullable.group({
-      locationName: [value?.locationName ?? '', [Validators.required]],
-      address: [value?.address ?? '', [Validators.required]],
-      mapUrl: [value?.mapUrl ?? '', optionalUrl],
-    });
-  }
+private newLocation(value?: ContactLocation): FormGroup {
+  return this.fb.nonNullable.group({
+    id: this.fb.control<number | null>(value?.id ?? null),
+    locationName: [value?.locationName ?? '', [Validators.required]],
+    address: [value?.address ?? '', [Validators.required]],
+    mapUrl: [value?.mapUrl ?? '', optionalUrl],
+  });
+}
 }

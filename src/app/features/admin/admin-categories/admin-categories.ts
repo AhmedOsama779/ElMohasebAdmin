@@ -54,21 +54,21 @@ export class AdminCategories {
     this.load();
   }
 
-  load() {
-    this.loading.set(true);
-    this.error.set(null);
+ load(silent = false) {
+  if (!silent) this.loading.set(true);
+  this.error.set(null);
 
-    this.categoryApi.getAll(1, 50).subscribe({
-      next: page => {
-        this.categories.set(page.items);
-        this.loading.set(false);
-      },
-      error: err => {
-        this.error.set(arabicError(err, { 403: 'ليس لديك صلاحية الوصول إلى هذه الصفحة' }));
-        this.loading.set(false);
-      },
-    });
-  }
+  this.categoryApi.getAll(1, 50).subscribe({
+    next: page => {
+      this.categories.set(page.items);
+      this.loading.set(false);
+    },
+    error: err => {
+      this.error.set(arabicError(err, { 403: 'ليس لديك صلاحية الوصول إلى هذه الصفحة' }));
+      this.loading.set(false);
+    },
+  });
+}
 
   isActive(category: CategoryItem): boolean {
     return this.admin.isCategoryActive(category);
@@ -79,34 +79,32 @@ export class AdminCategories {
   }
 
   toggle(category: CategoryItem) {
-    const next = !this.isActive(category);
+  const disabling = this.isActive(category);
 
-    if (!next && !confirm(`سيتم تعطيل تصنيف «${category.name}» وإخفاؤه عن العملاء. هل تريد المتابعة؟`)) {
-      return;
-    }
-
-    this.busyId.set(category.id);
-    this.notice.set(null);
-
-    this.admin.setCategoryActive(category.id, next).subscribe({
-      next: () => {
-        this.categories.update(list =>
-          list.map(c => (c.id === category.id ? { ...c, isActive: next } : c))
-        );
-        this.busyId.set(null);
-      },
-      error: err => {
-        this.notice.set({
-          kind: 'error',
-          text: arabicError(err, {
-            403: 'ليس لديك صلاحية لتغيير حالة التصنيف.',
-            404: 'هذه الميزة غير متاحة بعد في الخادم.',
-          }),
-        });
-        this.busyId.set(null);
-      },
-    });
+  if (disabling && !confirm(`سيتم تعطيل تصنيف «${category.name}» وإخفاؤه عن العملاء. هل تريد المتابعة؟`)) {
+    return;
   }
+
+  this.busyId.set(category.id);
+  this.notice.set(null);
+
+  this.admin.toggleCategory(category.id).subscribe({
+    next: () => {
+      this.busyId.set(null);
+      this.load(true); // read the new status back from the server
+    },
+    error: err => {
+      this.notice.set({
+        kind: 'error',
+        text: arabicError(err, {
+          403: 'ليس لديك صلاحية لتغيير حالة التصنيف.',
+          404: 'التصنيف غير موجود.',
+        }),
+      });
+      this.busyId.set(null);
+    },
+  });
+}
 
   // The "إضافة تصنيف جديد" button at the top: jump to the form
   focusForm() {

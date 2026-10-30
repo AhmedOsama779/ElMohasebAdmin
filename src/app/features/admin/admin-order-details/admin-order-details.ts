@@ -1,12 +1,22 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
-import { AdminRequest, RequestDocumentFile, RequestExtras } from '../../../core/models/api.models';
+import { AdminRequest, RequestDocument } from '../../../core/models/api.models';
 import { Admin } from '../../../core/services/admin';
 import { arabicError } from '../../../shared/utils/errors';
-import { formatDate } from '../../../shared/utils/format';
 import { toProxyUrl } from '../../../shared/utils/url';
+
+
+type Kind = 'pdf' | 'image' | 'file';
+
+const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
+const MIME_EXTENSION: Record<string, string> = {
+  'application/pdf': 'pdf',
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+};
 
 @Component({
   selector: 'app-admin-order-details',
@@ -20,28 +30,18 @@ export class AdminOrderDetails {
 
   private id = Number(this.route.snapshot.paramMap.get('id'));
   toProxyUrl = toProxyUrl;
-  formatDate = formatDate;
 
   request = signal<AdminRequest | null>(null);
-  extras = signal<RequestExtras | null>(null);
   loading = signal(true);
   error = signal<string | null>(null);
 
   // The file being fetched right now (preview or download)
-  busyFile = signal<number | null>(null);
+  busyFile = signal<string | null>(null);
   fileError = signal<string | null>(null);
-
-  // What to show where the second receipt would be
-  remainingNote = computed(() => {
-    const e = this.extras();
-    if (!e) return 'إيصال المتبقي غير متاح حاليًا';
-    if (!e.isPaidComplete) return 'لم يتم سداد المتبقي بعد';
-    return e.remainingReceiptUrl ? null : 'لا توجد صورة لإيصال المتبقي';
-  });
 
   // "إجمالي 4 ملفات مرفقة"
   filesLabel = computed(() => {
-    const n = this.extras()?.documents.length ?? 0;
+    const n = this.request()?.documents?.length ?? 0;
     if (n === 0) return 'لا توجد ملفات مرفقة';
     if (n === 1) return 'إجمالي ملف واحد مرفق';
     if (n === 2) return 'إجمالي ملفين مرفقين';
@@ -49,16 +49,12 @@ export class AdminOrderDetails {
   });
 
   constructor() {
-    forkJoin({
-      request: this.admin.findRequest(this.id),
-      extras: this.admin.getRequestExtras(this.id),
-    }).subscribe({
-      next: ({ request, extras }) => {
+    this.admin.findRequest(this.id).subscribe({
+      next: request => {
         if (!request) {
           this.error.set('لم يتم العثور على هذا الطلب');
         } else {
           this.request.set(request);
-          this.extras.set(extras);
           if (!request.isRead) this.markRead(request); // opening an order counts as reading it
         }
         this.loading.set(false);
@@ -72,27 +68,34 @@ export class AdminOrderDetails {
 
   // ---------- file helpers ----------
 
+  // "pdf" from "السجل التجاري.pdf", or from the end of the link when the name has no extension
+  extensionOf(doc: RequestDocument): string {
+    const fromName = /\.([a-z0-9]{2,5})$/i.exec(doc.name)?.[1];
+    const fromUrl = /\.([a-z0-9]{2,5})(?:[?#]|$)/i.exec(doc.url)?.[1];
+    return (fromName ?? fromUrl ?? '').toLowerCase();
+  }
+
+  kindOf(doc: RequestDocument): Kind {
+    const extension = this.extensionOf(doc);
+    if (extension === 'pdf') return 'pdf';
+    return IMAGE_EXTENSIONS.includes(extension) ? 'image' : 'file';
+  }
+
   // "صيغة: PDF" or "صيغة: صورة PNG"
-  formatLabel(file: RequestDocumentFile): string {
-    const extension = file.name.includes('.') ? file.name.split('.').pop()!.toUpperCase() : '';
-    if (file.kind === 'pdf') return extension || 'PDF';
-    return extension ? `صورة ${extension}` : 'صورة';
+  formatLabel(doc: RequestDocument): string {
+    const extension = this.extensionOf(doc).toUpperCase();
+    const kind = this.kindOf(doc);
+    if (kind === 'image') return extension ? `صورة ${extension}` : 'صورة';
+    return extension || 'ملف';
   }
 
-  // "2.4 ميجابايت" (or kilobytes for small files)
-  sizeLabel(bytes: number | null): string {
-    if (bytes == null) return '—';
-    const mb = bytes / (1024 * 1024);
-    return mb >= 1 ? `${mb.toFixed(1)} ميجابايت` : `${Math.max(1, Math.round(bytes / 1024))} كيلوبايت`;
-  }
-
-  preview(file: RequestDocumentFile) {
-    if (!this.canFetch(file)) return;
+  preview(doc: RequestDocument) {
+    if (this.busyFile() !== null) return;
 
     // Open the tab right away, inside the click, otherwise the browser blocks it as a pop-up
     const tab = window.open('', '_blank');
 
-    this.fetch(file, blob => {
+    this.fetch(doc, blob => {
       const href = URL.createObjectURL(blob);
       if (tab) tab.location.href = href;
       else window.open(href, '_blank');
@@ -100,33 +103,31 @@ export class AdminOrderDetails {
     }, () => tab?.close());
   }
 
-  download(file: RequestDocumentFile) {
-    if (!this.canFetch(file)) return;
+  download(doc: RequestDocument) {
+    if (this.busyFile() !== null) return;
 
-    this.fetch(file, blob => {
+    this.fetch(doc, blob => {
       const href = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = href;
-      link.download = file.name;
+      link.download = this.fileNameFor(doc, blob);
       link.click();
       setTimeout(() => URL.revokeObjectURL(href), 10_000);
     });
   }
 
-  private canFetch(file: RequestDocumentFile): boolean {
-    if (this.busyFile() !== null) return false;
-    if (!file.url) {
-      this.fileError.set('رابط هذا الملف غير متاح حاليًا.');
-      return false;
-    }
-    return true;
+  // Make sure the saved file has an extension, even if the document name has none
+  private fileNameFor(doc: RequestDocument, blob: Blob): string {
+    if (/\.[a-z0-9]{2,5}$/i.test(doc.name)) return doc.name;
+    const extension = this.extensionOf(doc) || MIME_EXTENSION[blob.type] || '';
+    return extension ? `${doc.name}.${extension}` : doc.name;
   }
 
-  private fetch(file: RequestDocumentFile, done: (blob: Blob) => void, failed?: () => void) {
-    this.busyFile.set(file.id);
+  private fetch(doc: RequestDocument, done: (blob: Blob) => void, failed?: () => void) {
+    this.busyFile.set(doc.url);
     this.fileError.set(null);
 
-    this.admin.fetchFile(file.url!).subscribe({
+    this.admin.fetchFile(doc.url).subscribe({
       next: blob => {
         done(blob);
         this.busyFile.set(null);
