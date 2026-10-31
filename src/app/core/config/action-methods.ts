@@ -7,4 +7,5 @@ export const ACTION_METHOD = {
   deleteService: 'DELETE',
   deleteLocation: 'DELETE',
   deletePhone: 'DELETE',
+  deletePayment: 'DELETE',
 } as const;

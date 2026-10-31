@@ -4,7 +4,7 @@ import { EMPTY, Observable, defaultIfEmpty, expand, filter, map, take } from 'rx
 import { environment } from '../../../environments/environment';
 import { toProxyUrl } from '../../shared/utils/url';
 import { ACTION_METHOD } from '../config/action-methods';
-import { AdminRequest, ApiResponse, CategoryItem, ContactInput, PagedResult, PaymentInfo } from '../models/api.models';
+import { AccountType, AdminRequest, ApiResponse, CategoryItem, ContactInput, PagedResult, PaymentAccount, PaymentAccountInput } from '../models/api.models';
 
 @Injectable({ providedIn: 'root' })
 export class Admin {
@@ -48,9 +48,28 @@ export class Admin {
 
   // ---------- settings ----------
 
-  savePayment(body: PaymentInfo) {
-    return this.http.put<ApiResponse<unknown>>(`${this.base}/Payment/Payment`, body);
-  }
+  getPaymentAccounts() {
+  return this.http
+    .get<ApiResponse<PaymentAccount[]>>(`${this.base}/Payment/Payment`)
+    .pipe(map(res => res.data ?? []));
+}
+
+getAccountTypes() {
+  return this.http
+    .get<ApiResponse<AccountType[]>>(`${this.base}/Payment/AccountTypes`)
+    .pipe(map(res => res.data ?? []));
+}
+
+addPaymentAccount(body: PaymentAccountInput) {
+  return this.http.post<ApiResponse<unknown>>(`${this.base}/Payment/Payment`, body);
+}
+
+deletePaymentAccount(id: number) {
+  return this.http.request<ApiResponse<unknown>>(
+    ACTION_METHOD.deletePayment,
+    `${this.base}/Payment/Payment/${id}`
+  );
+}
 
   saveContact(body: ContactInput) {
     return this.http.put<ApiResponse<unknown>>(`${this.base}/ContactUs/ContactUs`, body);

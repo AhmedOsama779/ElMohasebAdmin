@@ -1,135 +1,193 @@
-<main class="settings">
+<main class="pay">
 
-  <nav class="crumbs" aria-label="مسار التنقل">
-    <span>بوابة الإدارة</span>
-    <span aria-hidden="true">›</span>
-    <span>الإعدادات العامة</span>
-  </nav>
+  <header class="head">
+    <div>
+      <h1 class="head__title">إعدادات حسابات الدفع</h1>
+      <p class="head__sub">إدارة وتوجيه المعرفات المالية المعتمدة للتحصيل الإلكتروني والتحويلات المباشرة</p>
+    </div>
 
-  <h1 class="settings__title">إعدادات الدفع ومعلومات المكتب</h1>
-  <p class="settings__sub">إدارة بيانات التحويلات المالية البنكية وسجل معلومات المكتب والفروع الرسمية.</p>
+    <button type="button" class="btn-save" (click)="focusForm()">إضافة حساب جديد +</button>
+  </header>
 
-  <section class="panel">
+  @if (notice(); as n) {
+    <p class="alert alert--{{ n.kind }} notice" role="status">
+      {{ n.text }}
+      <button type="button" class="notice__x" (click)="notice.set(null)" aria-label="إخفاء">✕</button>
+    </p>
+  }
 
-    <header class="panel__head">
-      <span class="panel__icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M20 7H5a2 2 0 010-4h13v4" />
-          <path d="M20 7a1 1 0 011 1v10a2 2 0 01-2 2H5a2 2 0 01-2-2V5" />
-          <circle cx="16.5" cy="13" r="1" />
-        </svg>
-      </span>
-      <div class="panel__text">
-        <h2>بوابات التحويل (إنستاباي / InstaPay)</h2>
-        <p>البيانات المعتمدة التي تظهر للعملاء عند إتمام عمليات السداد المباشر.</p>
-      </div>
-      <span class="panel__badge">نظام التحويل الفوري</span>
-    </header>
+  @if (loading()) {
+    <p class="state">جارٍ تحميل حسابات الدفع...</p>
+  } @else if (loadError(); as err) {
+    <p class="alert alert--error" role="alert">{{ err }}</p>
+  } @else {
 
-    @if (loading()) {
-      <p class="state">جارٍ تحميل بيانات الدفع...</p>
-    } @else if (loadError(); as err) {
-      <p class="alert alert--error" role="alert">{{ err }}</p>
-    } @else {
+    <!-- ===== Add form ===== -->
+    <section class="card">
+      <header class="card__head">
+        <span class="card__icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 8v8M8 12h8" />
+          </svg>
+        </span>
+        <div>
+          <h2>إضافة حساب دفع جديد</h2>
+          <p>قم بإدخال البيانات المصرفية أو المعرف الرقمي لاستقبال الدفعات</p>
+        </div>
+      </header>
 
-      @if (isNew()) {
-        <p class="info">لم تتم إضافة بيانات الدفع بعد. املأ الحقول واحفظ لإضافتها.</p>
-      }
-
-      <form [formGroup]="form" (ngSubmit)="save()" novalidate>
-
+      <form [formGroup]="form" (ngSubmit)="add()" novalidate>
         <div class="grid">
 
           <div class="field-box">
-            <label class="label" for="ipan">عنوان أو رقم إنستاباي المحول إليه <em>*</em></label>
-            <span class="input">
-              <input
-                id="ipan"
-                dir="ltr"
-                formControlName="ipan"
-                placeholder="name@instapay"
-                autocomplete="off"
-                [class.invalid]="ipan.invalid && ipan.touched"
-              />
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="4" />
-                <path d="M16 8v5a3 3 0 006 0v-1a10 10 0 10-3.9 7.9" />
-              </svg>
-            </span>
-            @if (ipan.touched && ipan.errors?.['required']) {
-              <span class="error">هذا الحقل مطلوب</span>
-            } @else if (ipan.touched && ipan.errors?.['instapay']) {
-              <span class="error">أدخل عنوان إنستاباي مثل name@instapay أو رقم هاتف مصري صحيح</span>
+            <label class="label" for="pay-type">نوع الحساب <em>*</em></label>
+            <select #typeSelect id="pay-type" formControlName="accountType"
+                    [class.invalid]="form.controls.accountType.invalid && form.controls.accountType.touched">
+              <option [ngValue]="0" disabled>نوع الحساب...</option>
+              @for (t of types(); track t.id) {
+                <option [ngValue]="t.id">{{ t.accountType }}</option>
+              }
+            </select>
+            @if (form.controls.accountType.invalid && form.controls.accountType.touched) {
+              <span class="error">اختر نوع الحساب</span>
             }
-            <small class="hint">يقبل معرف الدفع اللحظي (IPA) أو رقم الهاتف المرتبط بالمحفظة.</small>
+            <small class="hint">الجهة أو المحفظة المستقبلة للأموال</small>
           </div>
 
           <div class="field-box">
-            <label class="label" for="accountName">اسم المستلم المعتمد <em>*</em></label>
-            <span class="input">
-              <input
-                id="accountName"
-                dir="auto"
-                formControlName="accountName"
-                autocomplete="off"
-                [class.invalid]="accountName.invalid && accountName.touched"
-              />
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="3" y="7" width="18" height="13" rx="2" />
-                <path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18" />
-              </svg>
-            </span>
-            @if (accountName.touched && accountName.errors?.['required']) {
+            <label class="label" for="pay-name">اسم المستلم القانوني <em>*</em></label>
+            <input id="pay-name" dir="auto" formControlName="accountName"
+                   placeholder="مثال: شركة المحاسب للاستشارات المالية أو أحمد محمد"
+                   [class.invalid]="form.controls.accountName.invalid && form.controls.accountName.touched" />
+            @if (form.controls.accountName.touched && form.controls.accountName.errors?.['required']) {
               <span class="error">اسم المستلم مطلوب</span>
-            } @else if (accountName.touched && accountName.errors?.['maxlength']) {
+            } @else if (form.controls.accountName.touched && form.controls.accountName.errors?.['maxlength']) {
               <span class="error">الاسم طويل جدًا (100 حرف كحد أقصى)</span>
             }
-            <small class="hint">يساعد العميل في التأكد من صحة المستلم قبل التحويل.</small>
+            <small class="hint">اسم صاحب الحساب كما يظهر في كشف الحساب الرسمي</small>
+          </div>
+
+          <div class="field-box">
+            <label class="label" for="pay-ipan">رقم الحساب / التليفون / عنوان إنستاباي IPA <em>*</em></label>
+            <input id="pay-ipan" dir="ltr" formControlName="ipan" autocomplete="off"
+                   placeholder="010123456 أو name@instapay أو EG38000..."
+                   [class.invalid]="form.controls.ipan.invalid && form.controls.ipan.touched" />
+            @if (form.controls.ipan.touched && form.controls.ipan.errors?.['required']) {
+              <span class="error">هذا الحقل مطلوب</span>
+            } @else if (form.controls.ipan.touched && form.controls.ipan.errors?.['identifier']) {
+              <span class="error">{{ identifierMessage() }}</span>
+            } @else if (form.controls.ipan.touched && form.controls.ipan.errors?.['maxlength']) {
+              <span class="error">القيمة طويلة جدًا (60 حرفًا كحد أقصى)</span>
+            }
+            <small class="hint">المعرف المالي الدقيق المستخدم في عملية الإيداع والتحويل</small>
+          </div>
+
+          <div class="field-box">
+            <label class="label" for="pay-notes">ملاحظات وتعليمات التحويل <em>*</em></label>
+            <input id="pay-notes" dir="auto" formControlName="notes"
+                   placeholder="مثال: يرجى كتابة رقم الطلب في خانة الملاحظات - تأكيد الإيداع..."
+                   [class.invalid]="form.controls.notes.invalid && form.controls.notes.touched" />
+            @if (form.controls.notes.touched && form.controls.notes.errors?.['required']) {
+              <span class="error">الملاحظات مطلوبة</span>
+            } @else if (form.controls.notes.touched && form.controls.notes.errors?.['maxlength']) {
+              <span class="error">الملاحظات طويلة جدًا (500 حرف كحد أقصى)</span>
+            }
+            <small class="hint">إرشادات سريعة تظهر للعميل لضمان مطابقة الدفعة</small>
           </div>
 
         </div>
 
-        <div class="field-box">
-          <label class="label" for="notes">ملاحظات إضافية وسياسة الاسترداد (اختياري)</label>
-          <textarea
-            id="notes"
-            dir="auto"
-            rows="4"
-            formControlName="notes"
-            [class.invalid]="notes.invalid && notes.touched"
-          ></textarea>
-          @if (notes.touched && notes.errors?.['maxlength']) {
-            <span class="error">الملاحظات طويلة جدًا (1000 حرف كحد أقصى)</span>
-          }
-          <small class="hint">تظهر هذه الملاحظات للعميل أسفل بيانات الدفع في شاشة تقديم الطلب.</small>
-        </div>
-
-        @if (saved()) {
-          <p class="alert alert--success" role="status">تم حفظ إعدادات الدفع بنجاح.</p>
-        }
         @if (saveError(); as err) {
           <p class="alert alert--error" role="alert">{{ err }}</p>
         }
 
-        <div class="foot">
-          <p class="foot__note">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 11v5M12 8h.01" />
-            </svg>
-            التعديلات تنعكس فورًا على فواتير وسندات سداد العملاء الجدد.
-          </p>
-
-          <button type="submit" class="save" [disabled]="saving() || (form.pristine && !isNew())">
+        <div class="actions">
+          <button type="submit" class="btn-save" [disabled]="saving()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M5 3h11l4 4v13a1 1 0 01-1 1H5a1 1 0 01-1-1V4a1 1 0 011-1z" />
               <path d="M8 3v5h7V3M8 21v-7h8v7" />
             </svg>
-            {{ saving() ? 'جارٍ الحفظ...' : 'حفظ إعدادات الدفع' }}
+            {{ saving() ? 'جارٍ الحفظ...' : 'حفظ وإضافة الحساب' }}
           </button>
+          <button type="button" class="btn-outline" (click)="cancel()" [disabled]="saving()">إلغاء وتفريغ الحقول</button>
         </div>
-
       </form>
-    }
-  </section>
+    </section>
+
+    <!-- ===== Saved accounts ===== -->
+    <section class="list">
+      <header class="list__head">
+        <h2>حسابات الدفع المعتمدة</h2>
+        <small>يتم استقبال الحوالات عبر أي من هذه الحسابات مباشرة</small>
+      </header>
+
+      @for (a of accounts(); track a.id) {
+        <article class="account">
+          <header class="account__head">
+            <div class="account__title">
+              <span class="icon icon--{{ iconOf(a) }}" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  @switch (iconOf(a)) {
+                    @case ('bolt') { <path d="M13 2L4 14h7l-1 8 9-12h-7z" /> }
+                    @case ('phone') {
+                      <rect x="7" y="2" width="10" height="20" rx="2" />
+                      <path d="M11 18h2" />
+                    }
+                    @case ('bank') { <path d="M3 10l9-6 9 6M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18" /> }
+                    @default {
+                      <rect x="2" y="6" width="20" height="14" rx="2" />
+                      <path d="M2 10h20M16 14h2" />
+                    }
+                  }
+                </svg>
+              </span>
+              <strong>{{ a.accountType?.accountType }}</strong>
+            </div>
+
+            <button type="button" class="del" [disabled]="deletingId() === a.id" (click)="remove(a)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+              </svg>
+              {{ deletingId() === a.id ? 'جارٍ الحذف...' : 'حذف الحساب' }}
+            </button>
+          </header>
+
+          <dl class="account__body">
+            <div>
+              <dt>نوع الحساب</dt>
+              <dd>{{ a.accountType?.accountType }}</dd>
+            </div>
+            <div>
+              <dt>اسم المستلم</dt>
+              <dd>{{ a.accountName }}</dd>
+            </div>
+            <div>
+              <dt>{{ idLabel(a) }}</dt>
+              <dd class="id">
+                <code dir="ltr">{{ display(a) }}</code>
+                <button type="button" class="copy" (click)="copy(a)" [attr.aria-label]="'نسخ ' + idLabel(a)">
+                  @if (copiedId() === a.id) {
+                    <small>تم النسخ</small>
+                  } @else {
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="9" y="9" width="11" height="11" rx="2" />
+                      <path d="M5 15V6a2 2 0 012-2h9" />
+                    </svg>
+                  }
+                </button>
+              </dd>
+            </div>
+            <div>
+              <dt>ملاحظات وتعليمات التحويل</dt>
+              <dd>{{ a.notes || '—' }}</dd>
+            </div>
+          </dl>
+        </article>
+      } @empty {
+        <p class="state">لا توجد حسابات دفع بعد. أضف أول حساب من النموذج بالأعلى.</p>
+      }
+    </section>
+
+  }
 </main>

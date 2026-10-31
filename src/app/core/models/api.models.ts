@@ -194,3 +194,22 @@ export interface ApiCustomer {
   city: string;
 }
 
+export interface AccountType {
+  id: number;
+  accountType: string;
+}
+
+export interface PaymentAccount {
+  id: number;
+  ipan: string;
+  accountName: string;
+  notes: string | null;
+  accountType: AccountType;
+}
+
+export interface PaymentAccountInput {
+  accountType: number;
+  ipan: string;
+  accountName: string;
+  notes: string;
+}
