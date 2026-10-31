@@ -26,9 +26,12 @@
       <span>تصفية حسب التصنيف:</span>
       <select (change)="onFilter($event)">
         <option value="0">جميع التصنيفات</option>
-        @for (c of categories(); track c.id) {
-          <option [value]="c.id" [selected]="c.id === filterId()">{{ c.name }}</option>
+        @for (c of selectableCategories(); track c.id) {
+          <option [ngValue]="c.id">{{ c.name }}</option>
         }
+        @if (!selectableCategories().length) {
+  <small class="hint">لا توجد تصنيفات متاحة. أضف تصنيفًا أو فعّل أحد التصنيفات المعطلة.</small>
+}
       </select>
     </label>
 
@@ -89,7 +92,7 @@
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                       </svg>
-                      {{ docsLabel(s.documents.length) }}
+                      {{ docsLabel(s.count ?? s.documents.length) }}
                     </span>
                   </td>
                   <td>

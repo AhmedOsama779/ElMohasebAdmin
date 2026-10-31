@@ -63,7 +63,6 @@ export class Admin {
     );
   }
 
-  // TODO: the path is a guess, confirm it in Swagger
   deletePhone(id: number) {
     return this.http.request<ApiResponse<unknown>>(
       ACTION_METHOD.deletePhone,

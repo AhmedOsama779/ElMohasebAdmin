@@ -51,6 +51,7 @@ export interface ServiceItem {
   deposit: number;
   remind: number;
   documents: DocumentItem[];
+  count?: number; // number of documents, counted by the server
 }
 
 export interface CategoryItem {

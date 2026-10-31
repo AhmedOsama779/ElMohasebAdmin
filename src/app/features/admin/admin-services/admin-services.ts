@@ -63,6 +63,8 @@ export class AdminServices {
   groups = computed(() =>
     this.categories().filter(c => c.services.length && (this.filterId() === 0 || c.id === this.filterId()))
   );
+  // The "new service" pop-up only offers categories that are not disabled
+selectableCategories = computed(() => this.categories().filter(c => c.isValid !== false));
 
   // ---------- the form inside the dialog ----------
   documents = new FormArray<FormGroup>([], { validators: uniqueNames });
@@ -100,21 +102,21 @@ export class AdminServices {
   }
 
   // ---------- list helpers ----------
-  load() {
-    this.loading.set(true);
-    this.error.set(null);
+  load(silent = false) {
+  if (!silent) this.loading.set(true);
+  this.error.set(null);
 
-    this.categoryApi.getAll(1, 50).subscribe({
-      next: page => {
-        this.categories.set(page.items);
-        this.loading.set(false);
-      },
-      error: err => {
-        this.error.set(arabicError(err, { 403: 'ليس لديك صلاحية الوصول إلى هذه الصفحة' }));
-        this.loading.set(false);
-      },
-    });
-  }
+  this.categoryApi.getAll(1, 50).subscribe({
+    next: page => {
+      this.categories.set(page.items);
+      this.loading.set(false);
+    },
+    error: err => {
+      this.error.set(arabicError(err, { 403: 'ليس لديك صلاحية الوصول إلى هذه الصفحة' }));
+      this.loading.set(false);
+    },
+  });
+}
 
   onFilter(event: Event) {
     this.filterId.set(Number((event.target as HTMLSelectElement).value));
@@ -240,51 +242,48 @@ onCancelEvent(event: Event) {
       });
   }
 
-  // The server does not return the id of the new service, so we find it by name
-  // in a fresh categories list, then add the documents one by one
-  private afterCreate(categoryId: number, name: string, docs: { name: string; isMandatory: boolean }[]) {
-    this.categoryApi.getAll(1, 50).subscribe({
-      next: page => {
-        this.categories.set(page.items);
+ // in a fresh categories list, then add the documents one by one
+private afterCreate(categoryId: number, name: string, docs: { name: string; isMandatory: boolean }[]) {
+  this.categoryApi.getAll(1, 50).subscribe({
+    next: page => {
+      if (!docs.length) {
+        this.finish([]);
+        return;
+      }
 
-        if (!docs.length) {
-          this.finish([]);
-          return;
-        }
-
-        const serviceId = this.findServiceId(page.items, categoryId, name);
-        if (!serviceId) {
-          this.finish(docs.map(d => d.name));
-          return;
-        }
-
-        forkJoin(
-          docs.map(d =>
-            this.admin.addDocument(serviceId, d.name, d.isMandatory).pipe(
-              map(() => null),
-              catchError(() => of(d.name)) // remember which one failed, keep going
-            )
-          )
-        ).subscribe(results => this.finish(results.filter((n): n is string => n !== null)));
-      },
-      error: () => {
+      const serviceId = this.findServiceId(page.items, categoryId, name);
+      if (!serviceId) {
         this.finish(docs.map(d => d.name));
-        this.load();
-      },
-    });
-  }
+        return;
+      }
+
+      forkJoin(
+        docs.map(d =>
+          this.admin.addDocument(serviceId, d.name, d.isMandatory).pipe(
+            map(() => null),
+            catchError(() => of(d.name)) // remember which one failed, keep going
+          )
+        )
+      ).subscribe(results => this.finish(results.filter((n): n is string => n !== null)));
+    },
+    error: () => this.finish(docs.map(d => d.name)),
+  });
+}
 
   private finish(failedDocuments: string[]) {
-    this.saving.set(false);
-    this.form.markAsPristine();
-    this.closeDialog();
+  this.saving.set(false);
+  this.form.markAsPristine();
+  this.closeDialog();
 
-    this.notice.set(
-      failedDocuments.length
-        ? { kind: 'warning', text: `تمت إضافة الخدمة، لكن تعذرت إضافة هذه المستندات: ${failedDocuments.join('، ')}` }
-        : { kind: 'success', text: 'تمت إضافة الخدمة بنجاح.' }
-    );
-  }
+  this.notice.set(
+    failedDocuments.length
+      ? { kind: 'warning', text: `تمت إضافة الخدمة، لكن تعذرت إضافة هذه المستندات: ${failedDocuments.join('، ')}` }
+      : { kind: 'success', text: 'تمت إضافة الخدمة بنجاح.' }
+  );
+
+  // Read the list again now that the documents are saved, otherwise the count shows 0
+  this.load(true);
+}
 
   private findServiceId(categories: CategoryItem[], categoryId: number, name: string): number | null {
     const category = categories.find(c => c.id === categoryId);
@@ -297,7 +296,13 @@ onCancelEvent(event: Event) {
   }
 
   private resetForm() {
-    this.form.reset({ categoryId: this.filterId(), name: '', price: null, deposit: null, description: '' });
+    this.form.reset({
+      categoryId: this.selectableCategories().some(c => c.id === this.filterId()) ? this.filterId() : 0,
+      name: '',
+      price: null,
+      deposit: null,
+      description: '',
+    });    
     this.documents.clear();
     this.addDocument();
     this.form.markAsPristine();
