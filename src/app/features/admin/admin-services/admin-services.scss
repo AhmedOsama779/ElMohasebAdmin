@@ -336,14 +336,7 @@ textarea {
 
   &__actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 
-  &__url {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-
-    input { flex: 1; min-width: 180px; height: 38px; }
-  }
+  
 }
 
 .pick {
