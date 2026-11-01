@@ -24,14 +24,11 @@
   <div class="toolbar">
     <label class="filter">
       <span>تصفية حسب التصنيف:</span>
-      <select (change)="onFilter($event)">
+            <select (change)="onFilter($event)">
         <option value="0">جميع التصنيفات</option>
-        @for (c of selectableCategories(); track c.id) {
+        @for (c of categories(); track c.id) {
           <option [ngValue]="c.id">{{ c.name }}</option>
         }
-        @if (!selectableCategories().length) {
-  <small class="hint">لا توجد تصنيفات متاحة. أضف تصنيفًا أو فعّل أحد التصنيفات المعطلة.</small>
-}
       </select>
     </label>
 
@@ -135,15 +132,15 @@
           <label class="label" for="svc-category">التصنيف الرئيسي <em>*</em></label>
           <select id="svc-category" formControlName="categoryId" [class.invalid]="bad(form, 'categoryId')">
             <option [ngValue]="0" disabled>اختر التصنيف المناسب</option>
-            @for (c of categories(); track c.id) {
+            @for (c of selectableCategories(); track c.id) {
               <option [ngValue]="c.id">{{ c.name }}</option>
             }
           </select>
           @if (bad(form, 'categoryId')) {
             <span class="error">اختر التصنيف</span>
           }
-          @if (!categories().length) {
-            <small class="hint">لا توجد تصنيفات بعد. أضف تصنيفًا أولًا.</small>
+          @if (!selectableCategories().length) {
+            <small class="hint">لا توجد تصنيفات متاحة. أضف تصنيفًا أو فعّل أحد التصنيفات المعطلة.</small>
           }
         </div>
 
