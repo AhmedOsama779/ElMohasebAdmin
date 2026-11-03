@@ -55,7 +55,7 @@ export class AdminPayment {
     accountType: [0, [Validators.min(1)]],
     accountName: ['', [Validators.required, Validators.maxLength(100)]],
     ipan: ['', [Validators.required, Validators.maxLength(60), identifier]],
-    notes: ['', [Validators.required, Validators.maxLength(500)]],
+    notes: ['', [Validators.maxLength(500)]],
   });
 
   saving = signal(false);

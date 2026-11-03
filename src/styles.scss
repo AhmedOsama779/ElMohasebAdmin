@@ -135,3 +135,13 @@ a { text-decoration: none; color: inherit; }
   &--error { background: #fef3f2; color: #b42318; border: 1px solid #fecdca; }
   &--success { background: #ecfdf3; color: #067647; border: 1px solid #abefc6; }
 }
+
+
+// Page header with an "add" button: keep the button text on one line,
+// and on phones put the button under the title at full width
+.btn-save { white-space: nowrap; }
+
+@media (max-width: 600px) {
+  .head { flex-wrap: wrap; }
+  .head > .btn-save { width: 100%; }
+}
