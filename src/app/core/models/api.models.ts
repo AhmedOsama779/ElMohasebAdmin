@@ -213,3 +213,10 @@ export interface PaymentAccountInput {
   accountName: string;
   notes: string;
 }
+
+// Subscription switch: GET /api/Validity/Validity
+export interface ValidityInfo {
+  isValid: boolean;
+  message: string | null;  // optional reason shown on the page
+  phone: string | null;    // WhatsApp number of the service administrator
+}
